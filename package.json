@@ -1,7 +1,7 @@
 {
   "name": "nem-voting",
   "version": "1.0.0",
-  "description": "",
+  "description": "nem voting",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,9 +11,14 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^9.4.6",
+    "tslint": "^5.9.1",
     "typescript": "^2.7.2"
   },
   "dependencies": {
-    "nem-library": "^0.12.1"
+    "nem-library": "./nem-library"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shierve/nem-voting"
   }
 }

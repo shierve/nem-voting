@@ -1,20 +1,46 @@
 import {
     AccountHttp, Transaction, TransactionTypes, Address, NEMLibrary, NetworkTypes,
     MultisigTransaction, TransferTransaction, PlainMessage, BlockHttp, ChainHttp, Block,
-    Observable, AccountHistoricalInfo, AccountInfoWithMetaData,
+    Observable, AccountHistoricalInfo, AccountInfoWithMetaData, ServerConfig,
 } from "nem-library";
 
-// NEMLibrary.bootstrap(NetworkTypes.MAIN_NET);
+let nodes: ServerConfig[] = [];
+if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
+    nodes = [
+        {protocol: "http", domain: "104.128.226.60", port: 7890},
+    ];
+} else if (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) {
+    nodes = [
+        {protocol: "http", domain: "88.99.192.82", port: 7890},
+    ];
+} else {
+    throw new Error("Not bootstrapped");
+}
 
-const accountHttp = new AccountHttp();
-const chainHttp = new ChainHttp();
-const blockHttp = new BlockHttp();
+const accountHttp = new AccountHttp(nodes);
+const chainHttp = new ChainHttp(nodes);
+const blockHttp = new BlockHttp(nodes);
+
+const getTransferTransaction = (transaction: Transaction): TransferTransaction | null => {
+    if (transaction.type === TransactionTypes.MULTISIG) {
+        return (transaction as MultisigTransaction).otherTransaction as TransferTransaction;
+    } else if (transaction.type === TransactionTypes.TRANSFER) {
+        return (transaction as TransferTransaction);
+    }
+    return null;
+};
+
+const getAllTransactions = (receiver: Address): Observable<Transaction[]> => {
+    return accountHttp.incomingTransactions(receiver)
+        .map((allTransactions) => {
+            return allTransactions.filter((t) => (t.type === TransactionTypes.MULTISIG || t.type === TransactionTypes.TRANSFER));
+        });
+};
 
 const getTransactionsWithString =
 (queryString: string, receiver: Address, sender?: Address, position: number = 0): Observable<TransferTransaction[]> => {
     return accountHttp.incomingTransactions(receiver)
         .map((allTransactions) => {
-
             // We only want transfer and multisig transactions, and we are only interested in
             // the inner transaction for multisig transactions
             let transactions: TransferTransaction[] = allTransactions
@@ -145,5 +171,5 @@ const getImportances = (addresses: Address[], block?: number): Observable<number
 
 export {
     getImportances, getHeightByTimestamp, getHeightByTimestampPromise, getFirstMessageWithString,
-    getTransactionsWithString,
+    getTransactionsWithString, getAllTransactions, getTransferTransaction,
 };

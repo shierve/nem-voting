@@ -1,5 +1,7 @@
 import {getFirstMessageWithString} from "./utils";
 import { Address, Observable, NEMLibrary, NetworkTypes } from "nem-library";
+import { WHITELIST_POLL, POI_POLL } from "./constants";
+import { IResults, getWhitelistResults, getPOIResults } from "./counting";
 
 interface IFormData {
     title: string;
@@ -13,6 +15,10 @@ interface IPollData {
     description: string;
     options: string[];
     whitelist?: Address[];
+}
+
+interface IAddressLink {
+    [key: string]: Address;
 }
 
 abstract class Poll {
@@ -33,13 +39,16 @@ class UnbroadcastedPoll extends Poll {
     constructor(formData: IFormData, description: string, options: string[], whitelist?: Address[]) {
         super(formData, description, options, whitelist);
     }
+
+    // public broadcast = (): Observable<BroadcastedPoll> => {
+    // }
 }
 
 class BroadcastedPoll extends Poll {
     public readonly address: Address;
-    private optionAddresses: Address[];
+    private optionAddresses: IAddressLink;
 
-    constructor(formData: IFormData, description: string, options: string[], pollAddress: Address, optionAddresses: Address[], whitelist?: Address[]) {
+    constructor(formData: IFormData, description: string, options: string[], pollAddress: Address, optionAddresses: IAddressLink, whitelist?: Address[]) {
         super(formData, description, options, whitelist);
         this.address = pollAddress;
         this.optionAddresses = optionAddresses;
@@ -55,7 +64,6 @@ class BroadcastedPoll extends Poll {
             if (pollBasicData.some((e) => e === null)) {
                 throw new Error("Error fetching poll");
             }
-            // console.log(pollBasicData);
             const formData = JSON.parse(pollBasicData[0]!.replace("formData:", ""));
             const description = pollBasicData[1]!.replace("description:", "");
             const options = JSON.parse(pollBasicData[2]!.replace("options:", ""));
@@ -67,31 +75,32 @@ class BroadcastedPoll extends Poll {
             };
 
             // This part is for compatibility with the old poll structure
-            let orderedAddresses = [];
+            const addressLink: IAddressLink = {};
             if (options.link) {
-                orderedAddresses = options.strings.map((option: string) => {
-                    return options.link[option];
+                options.strings.forEach((option: string) => {
+                    addressLink[option] = new Address(options.link[option]);
                 });
             } else {
-                orderedAddresses = options.addresses;
+                options.strings.forEach((option: string, i) => {
+                    addressLink[option] = new Address(options.addresses[i]);
+                });
             }
 
-            if (orderedAddresses.length !== unique(orderedAddresses).length) {
+            const orderedAddresses = Object.keys(addressLink).map((option) => addressLink[option]);
+            if (orderedAddresses.length !== unique(orderedAddresses).length || Object.keys(addressLink).length !== options.strings.length) {
                 // same account for different options
                 throw Error("Poll is invalid");
             }
 
-            const optionAddresses = orderedAddresses.map((a: string) => new Address(a));
-
-            if (formData.type === 1) {
+            if (formData.type === WHITELIST_POLL) {
                 const whitelistString = await getFirstMessageWithString("whitelist:", pollAddress).first().toPromise();
                 if (whitelistString === null) {
                     throw new Error("Error fetching poll");
                 }
-                const whitelist = (JSON.parse(whitelistString!.replace("whitelist:", ""))).map((a) => new Address(a));
-                return new BroadcastedPoll(formData, description, options.strings, pollAddress, optionAddresses, whitelist);
+                const whitelist = (JSON.parse(whitelistString!.replace("whitelist:", ""))).map((a: string) => new Address(a));
+                return new BroadcastedPoll(formData, description, options.strings, pollAddress, addressLink, whitelist);
             } else {
-                return new BroadcastedPoll(formData, description, options.strings, pollAddress, optionAddresses);
+                return new BroadcastedPoll(formData, description, options.strings, pollAddress, addressLink);
             }
         } catch (err) {
             throw err;
@@ -102,6 +111,25 @@ class BroadcastedPoll extends Poll {
         return Observable.fromPromise(BroadcastedPoll.fromAddressPromise(pollAddress));
     }
 
+    public getOptionAddress = (option: string): Address | null => {
+        const address = this.optionAddresses[option];
+        if (!address) {
+            return null;
+        } else {
+            return address;
+        }
+    }
+
+    public getResults = (poll: BroadcastedPoll): Observable<IResults> => {
+        if (poll.data.formData.type === POI_POLL) {
+            return getPOIResults(poll);
+        } else if (poll.data.formData.type === WHITELIST_POLL) {
+            return getWhitelistResults(poll);
+        } else {
+            throw new Error("unsupported type");
+        }
+    }
+
 }
 
-export {IPollData, IFormData, Poll, BroadcastedPoll, UnbroadcastedPoll};
+export {IPollData, IFormData, IAddressLink, Poll, BroadcastedPoll, UnbroadcastedPoll};

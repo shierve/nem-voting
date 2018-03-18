@@ -1,0 +1,5 @@
+const vote = () => {
+    //
+};
+
+export { vote };

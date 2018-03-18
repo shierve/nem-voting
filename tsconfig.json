@@ -31,5 +31,6 @@
   "include": [
     "test/**/*.test.ts",
     "src/**/*.ts",
+    "crypto-js.d.ts"
   ]
 }

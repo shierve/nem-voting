@@ -1,7 +1,8 @@
-import { AccountHttp, Address, NEMLibrary, NetworkTypes, Transaction, Observable } from "nem-library";
+import { AccountHttp, Address, NEMLibrary, NetworkTypes, Transaction, TransactionTypes } from "nem-library";
 import { BroadcastedPoll } from "./Poll";
 import { getHeightByTimestamp, getTransactionsWithString, getAllTransactions, getTransferTransaction, getImportances } from "./utils";
 import { WHITELIST_POLL, POI_POLL } from "./constants";
+import { Observable } from "rxjs";
 
 interface IResults {
     totalVotes: number;
@@ -315,7 +316,7 @@ const getPOIResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> =>
         } else {
             // Since we deleted repeated votes in the same option, we can know all repetitions now mean they voted in more than one option
             const nullified = allAddresses.filter((item, pos, ary) => {
-                return pos && item === ary[pos - 1];
+                return pos && item.plain() === ary[pos - 1].plain();
             });
             // remove null votes
             voteAddresses = voteAddresses.map((addresses) => {
@@ -374,4 +375,162 @@ const getPOIResults = (poll: BroadcastedPoll): Observable<IResults> => {
     return Observable.fromPromise(getPOIResultsPromise(poll));
 };
 
-export { IResults, getWhitelistResultsPromise, getWhitelistResults, getPOIResultsPromise, getPOIResults };
+const toCsv = (o: object): string => {
+    const keys = Object.keys(o);
+    const params = Object.keys(o[keys[0]]);
+    let resultString: string = params[0];
+    params.forEach((param, i) => {
+        if (i !== 0) {
+            resultString += "," + param;
+        }
+    });
+    resultString += "\n";
+    keys.forEach((key) => {
+        resultString += o[key][params[0]];
+        params.forEach((param, i) => {
+            if (i !== 0) {
+                resultString += "," + o[key][param];
+            }
+        });
+        resultString += "\n";
+    });
+    return resultString;
+};
+
+const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
+    try {
+        if (poll.data.formData.type !== POI_POLL) {
+            throw new Error("Not a POI poll");
+        }
+
+        const end = (poll.data.formData.doe < Date.now()) ? (poll.data.formData.doe) : -1;
+
+        let blockPromise;
+        if (end !== -1) {
+            blockPromise = getHeightByTimestamp(end).first().toPromise();
+        } else {
+            blockPromise = Promise.resolve(-1);
+        }
+        const endBlock = await blockPromise;
+
+        // get all Transactions that can potentially be votes
+        const orderedAddresses = poll.data.options.map((option) => poll.getOptionAddress(option));
+        const optionTransactionPromises = orderedAddresses.map((address) => {
+            if (address === null) {
+                throw new Error("Error while counting votes");
+            }
+            return getAllTransactions(address!).first().toPromise();
+        });
+        let optionTransactions = await Promise.all(optionTransactionPromises);
+        // filter unconfirmed
+        optionTransactions = optionTransactions.map((transactions: Transaction[]) => {
+            return transactions.filter((transaction) => transaction.isConfirmed());
+        });
+
+        const votesObj: object = {};
+
+        // get individual information
+        optionTransactions.forEach((transactions: Transaction[], i) => {
+            transactions.forEach((trans) => {
+                const transaction = getTransferTransaction(trans)!;
+                const address = transaction.signer!.address.plain();
+                const block = transaction.getTransactionInfo().height;
+                const multisig = (trans.type === TransactionTypes.MULTISIG);
+                let validity = "Valid";
+                if (block > endBlock) {
+                    validity = "Too Late";
+                }
+                if (transaction.containsMosaics() || !(transaction.xem().amount ===  0)) {
+                    validity = "Not a 0xem transaction";
+                }
+                const opt = poll.data.options[i];
+                votesObj[transaction.signer!.address.plain()] = {
+                    address: (address),
+                    block: (block),
+                    validity: (validity),
+                    multisig: (multisig),
+                    option: opt,
+                };
+            });
+        });
+
+        optionTransactions = optionTransactions.map((transactions) => {
+            return transactions.map((transaction) => {
+                return getTransferTransaction(transaction)!;
+            });
+        });
+
+        let voteAddresses = optionTransactions.map((transactions: Transaction[])  => {
+            return transactions.map((transaction) => transaction.signer!.address);
+        });
+
+        // eliminate repetitions in array (return array is sorted)
+        const unique = (addresses: Address[]) => {
+            return addresses.sort((a: Address, b: Address) => (a.plain().localeCompare(b.plain())))
+                .filter((item, pos, ary) => {
+                    return !pos || item !== ary[pos - 1];
+                });
+        };
+        voteAddresses = voteAddresses.map(unique);
+
+        // merge for two sorted arrays
+        const merge = (a: Address[], b: Address[]) => {
+            const answer = new Array(a.length + b.length);
+            let i = 0;
+            let j = 0;
+            let k = 0;
+            while (i < a.length && j < b.length) {
+                if (a[i].plain() < b[j].plain()) {
+                    answer[k] = a[i];
+                    i++;
+                } else {
+                    answer[k] = b[j];
+                    j++;
+                }
+                k++;
+            }
+            while (i < a.length) {
+                answer[k] = a[i];
+                i++;
+                k++;
+            }
+            while (j < b.length) {
+                answer[k] = b[j];
+                j++;
+                k++;
+            }
+            return answer;
+        };
+        // merge addresses from all options (they remain sorted)
+        const allAddresses = voteAddresses.reduce(merge, []);
+        // we don't need to do anything if there are no votes
+        if (allAddresses.length === 0) {
+            return "";
+        }
+
+        // Since we deleted repeated votes in the same option, we can know all repetitions now mean they voted in more than one option
+        const nullified = allAddresses.filter((item, pos, ary) => {
+            return pos && item.plain() === ary[pos - 1].plain();
+        });
+        // mark null votes
+        nullified.forEach((address) => {
+            votesObj[address.plain()].validity = "Multiple Vote";
+        });
+
+        // We only want to query for importance once for every account
+        const uniqueAllAddresses = unique(allAddresses);
+        // Only valid votes now on voteAddresses and allAddresses
+        // Get Importances
+        const importances = await getImportances(uniqueAllAddresses, endBlock).first().toPromise();
+
+        uniqueAllAddresses.forEach((address, i) => {
+            votesObj[address.plain()].importance = importances[i];
+        });
+
+        return toCsv(votesObj);
+    } catch (err) {
+        throw err;
+    }
+};
+
+export { IResults, getWhitelistResultsPromise, getWhitelistResults, getPOIResultsPromise, getPOIResults, getPOIResultsCsv };

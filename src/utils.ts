@@ -1,8 +1,11 @@
 import {
     AccountHttp, Transaction, TransactionTypes, Address, NEMLibrary, NetworkTypes,
     MultisigTransaction, TransferTransaction, PlainMessage, BlockHttp, ChainHttp, Block,
-    Observable, AccountHistoricalInfo, AccountInfoWithMetaData, ServerConfig,
+    AccountHistoricalInfo, AccountInfoWithMetaData, ServerConfig, TimeWindow, XEM,
+    SignedTransaction, Account, TransactionHttp, NemAnnounceResult, PublicAccount,
 } from "nem-library";
+import CryptoJS = require("crypto-js");
+import { Observable } from "rxjs";
 
 let nodes: ServerConfig[] = [];
 if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
@@ -20,6 +23,7 @@ if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
 const accountHttp = new AccountHttp(nodes);
 const chainHttp = new ChainHttp(nodes);
 const blockHttp = new BlockHttp(nodes);
+const transactionHttp = new TransactionHttp(nodes);
 
 const getTransferTransaction = (transaction: Transaction): TransferTransaction | null => {
     if (transaction.type === TransactionTypes.MULTISIG) {
@@ -31,9 +35,13 @@ const getTransferTransaction = (transaction: Transaction): TransferTransaction |
 };
 
 const getAllTransactions = (receiver: Address): Observable<Transaction[]> => {
-    return accountHttp.incomingTransactions(receiver)
+    const pageable = accountHttp.incomingTransactionsPaginated(receiver, {pageSize: 100});
+    return pageable
         .map((allTransactions) => {
+            pageable.nextPage();
             return allTransactions.filter((t) => (t.type === TransactionTypes.MULTISIG || t.type === TransactionTypes.TRANSFER));
+        }).reduce((acc, page) => {
+            return acc.concat(page);
         });
 };
 
@@ -110,38 +118,41 @@ const getHeightByTimestampPromise = async (timestamp: number): Promise<number> =
         // 1.Approximate (60s average block time)
         const nemTimestamp = toNEMTimeStamp(timestamp);
         const now = toNEMTimeStamp((new Date()).getTime());
-        const elapsed = now - nemTimestamp;
-        // get current height and approx from there
         const curHeight = await getBlockchainHeight();
-        const lastBlock = await getBlockByHeight(curHeight);
-        // nem blocks are approximately 1min
-        let height = Math.floor(curHeight - (elapsed / 60));
-        // 2.Find exact block
-        let foundHeight;
-        // TODO: implement as binary searcn -> first find a lower bound then search
-        // (maybe dont cut exactly in half, go by prediction)
-        while (foundHeight === undefined) {
-            const block = await getBlockByHeight(height);
-            let x = Math.floor((nemTimestamp - block.timeStamp) / 60);
-            if (x < 0 && x > -10) {
-                x = -1;
+        const elapsed = now - nemTimestamp;
+        // memoization
+        const memo: {[key: number]: Block} = [];
+        let foundHeight: number | null = null;
+        let lastTimestamp = now;
+        let lastHeight = curHeight;
+        let lb = 0;
+        let ub = curHeight;
+        // estimation
+        while (foundHeight === null) {
+            let height = lastHeight + Math.ceil((nemTimestamp - lastTimestamp) / 60);
+            if (height < lb) {
+                height = lb;
+            } else if (height > ub) {
+                height = ub;
             }
-            if (x >= 0 && x <= 10) {
-                x = 1;
-            }
-            if (block.timeStamp <= nemTimestamp && (x === 1 || x === -1)) {
-                const nextBlock = await getBlockByHeight(height + 1);
+            const block = (memo[height]) ? memo[height] : await getBlockByHeight(height);
+            memo[height] = block;
+            if (block.timeStamp <= nemTimestamp) {
+                const nextBlock = (memo[height + 1]) ? memo[height + 1] : await getBlockByHeight(height + 1);
+                memo[height + 1] = nextBlock;
                 // check if target
                 if (nextBlock.timeStamp > nemTimestamp) {
                     foundHeight = height;
                 } else {
-                    height++;
+                    lb = height + 1;
                 }
             } else {
-                height += x;
+                ub = height - 1;
             }
+            lastHeight = height;
+            lastTimestamp = block.timeStamp;
         }
-        return foundHeight;
+        return foundHeight!;
     } catch (err) {
         throw err;
     }
@@ -169,7 +180,41 @@ const getImportances = (addresses: Address[], block?: number): Observable<number
     }
 };
 
+const sendMessage = (account: Account, message: string, address: Address): Observable<NemAnnounceResult> => {
+    const transferTransaction = TransferTransaction.create(
+        TimeWindow.createWithDeadline(),
+        address,
+        new XEM(0),
+        PlainMessage.create(message),
+    );
+    const signedTransaction = account.signTransaction(transferTransaction);
+    return transactionHttp.announceTransaction(signedTransaction);
+
+};
+
+const publicKeyToAddress = (pubKey: string) => {
+    if (pubKey[0] >= "8") {
+        pubKey = "00" + pubKey;
+    }
+    const pa = PublicAccount.createWithPublicKey(pubKey);
+    return pa.address;
+};
+
+// Poll Address from index information and creator
+const generatePollAddress = (title: string, publicKey: string) => {
+    const pk = CryptoJS.SHA3(publicKey + title, { outputLength: 256 }).toString();
+    const pa = PublicAccount.createWithPublicKey(pk);
+    return pa.address;
+};
+
+const deriveOptionAddress = (pollAddress: Address, option: string): Address => {
+    const plainAddress = pollAddress.plain();
+    const pubKey = CryptoJS.SHA3(plainAddress + option, { outputLength: 256 }).toString();
+    return publicKeyToAddress(pubKey);
+};
+
 export {
     getImportances, getHeightByTimestamp, getHeightByTimestampPromise, getFirstMessageWithString,
-    getTransactionsWithString, getAllTransactions, getTransferTransaction,
+    getTransactionsWithString, getAllTransactions, getTransferTransaction, sendMessage, generatePollAddress,
+    deriveOptionAddress,
 };

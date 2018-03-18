@@ -1,7 +1,8 @@
-import {getFirstMessageWithString} from "./utils";
-import { Address, Observable, NEMLibrary, NetworkTypes } from "nem-library";
-import { WHITELIST_POLL, POI_POLL } from "./constants";
+import {getFirstMessageWithString, generatePollAddress, deriveOptionAddress, sendMessage} from "./utils";
+import { Address, NEMLibrary, NetworkTypes, Account } from "nem-library";
+import { WHITELIST_POLL, POI_POLL, MAINNET_POLL_INDEX, TESTNET_POLL_INDEX } from "./constants";
 import { IResults, getWhitelistResults, getPOIResults } from "./counting";
+import { Observable } from "rxjs";
 
 interface IFormData {
     title: string;
@@ -40,8 +41,50 @@ class UnbroadcastedPoll extends Poll {
         super(formData, description, options, whitelist);
     }
 
-    // public broadcast = (): Observable<BroadcastedPoll> => {
-    // }
+    private broadcastPromise = async (account: Account): Promise<BroadcastedPoll> => {
+        try {
+            const pollAddress = generatePollAddress(this.data.formData.title, account.publicKey);
+            const link: IAddressLink = {};
+            const simplifiedLink: {[key: string]: string} = {};
+            this.data.options.forEach((option) => {
+                const addr = deriveOptionAddress(pollAddress, option);
+                link[option] = addr;
+                simplifiedLink[option] = addr.plain();
+            });
+            const formDataMessage = "formData:" + JSON.stringify(this.data.formData);
+            const descriptionMessage = "description:" + this.data.description;
+            const optionsObject = {strings: this.data.options, link: (simplifiedLink)};
+            const optionsMessage = "options:" + JSON.stringify(optionsObject);
+
+            const formDataPromise = sendMessage(account, formDataMessage, pollAddress).first().toPromise();
+            const descriptionPromise = sendMessage(account, descriptionMessage, pollAddress).first().toPromise();
+            const optionsPromise = sendMessage(account, optionsMessage, pollAddress).first().toPromise();
+            const messagePromises = [formDataPromise, descriptionPromise, optionsPromise];
+            if (this.data.formData.type === WHITELIST_POLL) {
+                const whitelistMessage = "whitelist:" + JSON.stringify(this.data.whitelist);
+                const whitelistPromise = sendMessage(account, whitelistMessage, pollAddress).first().toPromise();
+                messagePromises.push(whitelistPromise);
+            }
+            await Promise.all(messagePromises);
+            const header = {
+                title: this.data.formData.title,
+                type: this.data.formData.type,
+                doe: this.data.formData.doe,
+                address: pollAddress.plain(),
+            };
+            const headerMessage = "poll:" + JSON.stringify(header);
+            const pollIndexAddress = (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) ?
+                new Address(MAINNET_POLL_INDEX) : new Address(TESTNET_POLL_INDEX);
+            await sendMessage(account, headerMessage, pollIndexAddress).first().toPromise();
+            return new BroadcastedPoll(this.data.formData, this.data.description, this.data.options, pollAddress, link, this.data.whitelist);
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    public broadcast = (account: Account): Observable<BroadcastedPoll> => {
+        return Observable.fromPromise(this.broadcastPromise(account));
+    }
 }
 
 class BroadcastedPoll extends Poll {
@@ -81,6 +124,7 @@ class BroadcastedPoll extends Poll {
                     addressLink[option] = new Address(options.link[option]);
                 });
             } else {
+                options.addresses = options.addresses.sort();
                 options.strings.forEach((option: string, i) => {
                     addressLink[option] = new Address(options.addresses[i]);
                 });

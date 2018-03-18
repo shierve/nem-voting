@@ -15,7 +15,8 @@
     "typescript": "^2.7.2"
   },
   "dependencies": {
-    "nem-library": "./nem-library"
+    "crypto-js": "^3.1.9-1",
+    "nem-library": "^1.0.1"
   },
   "repository": {
     "type": "git",

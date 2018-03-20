@@ -45,6 +45,24 @@ const getAllTransactions = (receiver: Address): Observable<Transaction[]> => {
         });
 };
 
+const findTransaction = (sender: Address, receiver: Address): Observable<Transaction | null> => {
+    return getAllTransactions(receiver)
+        .map((transactions) => {
+            const filtered = transactions.filter((transaction) => {
+                const tt = getTransferTransaction(transaction);
+                if (!tt) {
+                    return false;
+                }
+                return (tt.signer!.address === sender);
+            });
+            if (filtered.length === 0) {
+                return null;
+            } else {
+                return filtered[0];
+            }
+        });
+};
+
 const getTransactionsWithString =
 (queryString: string, receiver: Address, sender?: Address, position: number = 0): Observable<TransferTransaction[]> => {
     return accountHttp.incomingTransactions(receiver)
@@ -189,7 +207,22 @@ const sendMessage = (account: Account, message: string, address: Address): Obser
     );
     const signedTransaction = account.signTransaction(transferTransaction);
     return transactionHttp.announceTransaction(signedTransaction);
+};
 
+const sendMultisigMessage = (account: Account, multisigAccount: PublicAccount, message: string, address: Address): Observable<NemAnnounceResult> => {
+    const transferTransaction = TransferTransaction.create(
+        TimeWindow.createWithDeadline(),
+        address,
+        new XEM(0),
+        PlainMessage.create(message),
+    );
+    const multisigTransaction: MultisigTransaction = MultisigTransaction.create(
+        TimeWindow.createWithDeadline(),
+        transferTransaction,
+        multisigAccount,
+    );
+    const signedTransaction = account.signTransaction(multisigTransaction);
+    return transactionHttp.announceTransaction(signedTransaction);
 };
 
 const publicKeyToAddress = (pubKey: string) => {
@@ -214,7 +247,7 @@ const deriveOptionAddress = (pollAddress: Address, option: string): Address => {
 };
 
 export {
-    getImportances, getHeightByTimestamp, getHeightByTimestampPromise, getFirstMessageWithString,
-    getTransactionsWithString, getAllTransactions, getTransferTransaction, sendMessage, generatePollAddress,
-    deriveOptionAddress,
+    getImportances, getHeightByTimestamp, findTransaction, getHeightByTimestampPromise, getFirstMessageWithString,
+    getTransactionsWithString, getAllTransactions, getTransferTransaction, sendMessage, sendMultisigMessage,
+    generatePollAddress, deriveOptionAddress,
 };

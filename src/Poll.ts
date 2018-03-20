@@ -1,8 +1,9 @@
-import {getFirstMessageWithString, generatePollAddress, deriveOptionAddress, sendMessage} from "./utils";
-import { Address, NEMLibrary, NetworkTypes, Account } from "nem-library";
+import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, sendMessage } from "./utils";
+import { Address, NEMLibrary, NetworkTypes, Account, NemAnnounceResult, PublicAccount, Transaction } from "nem-library";
 import { WHITELIST_POLL, POI_POLL, MAINNET_POLL_INDEX, TESTNET_POLL_INDEX } from "./constants";
 import { IResults, getWhitelistResults, getPOIResults } from "./counting";
 import { Observable } from "rxjs";
+import { vote, multisigVote, getVotes } from "./voting";
 
 interface IFormData {
     title: string;
@@ -164,7 +165,8 @@ class BroadcastedPoll extends Poll {
         }
     }
 
-    public getResults = (poll: BroadcastedPoll): Observable<IResults> => {
+    public getResults = (): Observable<IResults> => {
+        const poll = this;
         if (poll.data.formData.type === POI_POLL) {
             return getPOIResults(poll);
         } else if (poll.data.formData.type === WHITELIST_POLL) {
@@ -172,6 +174,35 @@ class BroadcastedPoll extends Poll {
         } else {
             throw new Error("unsupported type");
         }
+    }
+
+    public validate = (): boolean => {
+        const sortedOptions = this.data.options.sort();
+        if (sortedOptions.some((v, i, a) => (i !== 0 && a[i - 1] === v))) {
+            return false;
+        }
+        const pollAddress = this.address;
+        const validOptionAddress = (option: string) => {
+            const expected = deriveOptionAddress(pollAddress, option);
+            const actual = this.getOptionAddress(option);
+            if (!actual) {
+                return false;
+            }
+            return (expected.plain() === actual.plain());
+        };
+        return (sortedOptions.every(validOptionAddress));
+    }
+
+    public vote = (account: Account, option: string): Observable<NemAnnounceResult> => {
+        return vote(account, this, option);
+    }
+
+    public voteMultisig = (account: Account, multisigAccount: PublicAccount, option: string): Observable<NemAnnounceResult> => {
+        return multisigVote(account, multisigAccount, this, option);
+    }
+
+    public getVotes = (address: Address): Observable<Transaction[] | null> => {
+        return getVotes(address, this);
     }
 
 }

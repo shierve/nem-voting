@@ -7,23 +7,31 @@ import {
 import CryptoJS = require("crypto-js");
 import { Observable } from "rxjs";
 
-let nodes: ServerConfig[] = [];
-if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
-    nodes = [
-        {protocol: "http", domain: "104.128.226.60", port: 7890},
-    ];
-} else if (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) {
-    nodes = [
-        {protocol: "http", domain: "88.99.192.82", port: 7890},
-    ];
-} else {
-    throw new Error("Not bootstrapped");
-}
+let accountHttp: AccountHttp;
+let chainHttp: ChainHttp;
+let blockHttp: BlockHttp;
+let transactionHttp: TransactionHttp;
 
-const accountHttp = new AccountHttp(nodes);
-const chainHttp = new ChainHttp(nodes);
-const blockHttp = new BlockHttp(nodes);
-const transactionHttp = new TransactionHttp(nodes);
+const initialize = () => {
+    let nodes: ServerConfig[] = [];
+
+    if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
+        nodes = [
+            {protocol: "http", domain: "104.128.226.60", port: 7890},
+        ];
+    } else if (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) {
+        nodes = [
+            {protocol: "http", domain: "88.99.192.82", port: 7890},
+        ];
+    } else {
+        throw new Error("Not bootstrapped");
+    }
+
+    accountHttp = new AccountHttp(nodes);
+    chainHttp = new ChainHttp(nodes);
+    blockHttp = new BlockHttp(nodes);
+    transactionHttp = new TransactionHttp(nodes);
+};
 
 const getTransferTransaction = (transaction: Transaction): TransferTransaction | null => {
     if (transaction.type === TransactionTypes.MULTISIG) {
@@ -35,6 +43,9 @@ const getTransferTransaction = (transaction: Transaction): TransferTransaction |
 };
 
 const getAllTransactions = (receiver: Address): Observable<Transaction[]> => {
+    if (!accountHttp) {
+        initialize();
+    }
     const pageable = accountHttp.incomingTransactionsPaginated(receiver, {pageSize: 100});
     return pageable
         .map((allTransactions) => {
@@ -65,6 +76,9 @@ const findTransaction = (sender: Address, receiver: Address): Observable<Transac
 
 const getTransactionsWithString =
 (queryString: string, receiver: Address, sender?: Address, position: number = 0): Observable<TransferTransaction[]> => {
+    if (!accountHttp) {
+        initialize();
+    }
     return accountHttp.incomingTransactions(receiver)
         .map((allTransactions) => {
             // We only want transfer and multisig transactions, and we are only interested in
@@ -113,14 +127,23 @@ const toNEMTimeStamp = (date: number) => {
 };
 
 const getBlockchainHeight = (): Promise<number> => {
+    if (!accountHttp) {
+        initialize();
+    }
     return chainHttp.getBlockchainHeight().first().toPromise();
 };
 
 const getBlockByHeight = (height: number): Promise<Block> => {
+    if (!accountHttp) {
+        initialize();
+    }
     return blockHttp.getBlockByHeight(height).first().toPromise();
 };
 
 const getLastBlock = (): Promise<Block> => {
+    if (!accountHttp) {
+        initialize();
+    }
     return chainHttp.getBlockchainLastBlock().first().toPromise();
 };
 
@@ -181,6 +204,9 @@ const getHeightByTimestamp = (timestamp: number) => {
 };
 
 const getImportances = (addresses: Address[], block?: number): Observable<number[]> => {
+    if (!accountHttp) {
+        initialize();
+    }
     if (block === undefined || block < 0) {
         return accountHttp.getBatchAccountData(addresses)
             .map((accountsData: AccountInfoWithMetaData[]) => {
@@ -199,6 +225,9 @@ const getImportances = (addresses: Address[], block?: number): Observable<number
 };
 
 const sendMessage = (account: Account, message: string, address: Address): Observable<NemAnnounceResult> => {
+    if (!accountHttp) {
+        initialize();
+    }
     const transferTransaction = TransferTransaction.create(
         TimeWindow.createWithDeadline(),
         address,
@@ -210,6 +239,9 @@ const sendMessage = (account: Account, message: string, address: Address): Obser
 };
 
 const sendMultisigMessage = (account: Account, multisigAccount: PublicAccount, message: string, address: Address): Observable<NemAnnounceResult> => {
+    if (!accountHttp) {
+        initialize();
+    }
     const transferTransaction = TransferTransaction.create(
         TimeWindow.createWithDeadline(),
         address,

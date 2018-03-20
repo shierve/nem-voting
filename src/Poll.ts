@@ -6,23 +6,53 @@ import { Observable } from "rxjs";
 import { vote, multisigVote, getVotes } from "./voting";
 
 interface IFormData {
+    /**
+     * Title of the poll
+     */
     title: string;
+    /**
+     * date of ending, as milliseconds from UNIX epoch
+     */
     doe: number;
+    /**
+     * True if multiple votes are accepted
+     */
     multiple: boolean;
+    /**
+     * type of the poll
+     */
     type: number;
 }
 
 interface IPollData {
+    /**
+     * General information abount the poll
+     */
     formData: IFormData;
+    /**
+     * Detailed description for the poll
+     */
     description: string;
+    /**
+     * Options of the poll
+     */
     options: string[];
+    /**
+     * (optional) Array of Addresses to be whitelisted. Only for whitelist polls
+     */
     whitelist?: Address[];
 }
 
+/**
+ * Maps strings to  addresses, one for each poll option
+ */
 interface IAddressLink {
     [key: string]: Address;
 }
 
+/**
+ * Abstract class that represents a poll
+ */
 abstract class Poll {
     public readonly data: IPollData;
     constructor(formData: IFormData, description: string, options: string[], whitelist?: Address[]) {
@@ -37,11 +67,19 @@ abstract class Poll {
     }
 }
 
+/**
+ * An unbroadcasted poll. Exists only locally and not on the blockchain yet
+ */
 class UnbroadcastedPoll extends Poll {
     constructor(formData: IFormData, description: string, options: string[], whitelist?: Address[]) {
         super(formData, description, options, whitelist);
     }
 
+    /**
+     * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object (as a promise)
+     * @param account - NEM Account that will broadcast the poll
+     * @return Promise<BroadcastedPoll>
+     */
     private broadcastPromise = async (account: Account): Promise<BroadcastedPoll> => {
         try {
             const pollAddress = generatePollAddress(this.data.formData.title, account.publicKey);
@@ -83,13 +121,27 @@ class UnbroadcastedPoll extends Poll {
         }
     }
 
+    /**
+     * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object as an Observable
+     * @param account - NEM Account that will broadcast the poll
+     * @return Observable<BroadcastedPoll>
+     */
     public broadcast = (account: Account): Observable<BroadcastedPoll> => {
         return Observable.fromPromise(this.broadcastPromise(account));
     }
 }
 
+/**
+ * A broadcasted poll. Exists in the blockchain
+ */
 class BroadcastedPoll extends Poll {
+    /**
+     * The poll address
+     */
     public readonly address: Address;
+    /**
+     * Map from option to option address
+     */
     private optionAddresses: IAddressLink;
 
     constructor(formData: IFormData, description: string, options: string[], pollAddress: Address, optionAddresses: IAddressLink, whitelist?: Address[]) {
@@ -98,6 +150,11 @@ class BroadcastedPoll extends Poll {
         this.optionAddresses = optionAddresses;
     }
 
+    /**
+     * Fetches a Broadcasted Poll from the blockchain by its address
+     * @param pollAddress - The poll's NEM Address
+     * @return Promise<BroadcastedPoll>
+     */
     private static fromAddressPromise = async (pollAddress: Address): Promise<BroadcastedPoll> => {
         try {
             const formDataPromise = getFirstMessageWithString("formData:", pollAddress).first().toPromise();
@@ -152,10 +209,20 @@ class BroadcastedPoll extends Poll {
         }
     }
 
+    /**
+     * Fetches a Broadcasted Poll from the blockchain by its address
+     * @param pollAddress - The poll's NEM Address
+     * @return Observable<BroadcastedPoll>
+     */
     public static fromAddress = (pollAddress: Address): Observable<BroadcastedPoll> => {
         return Observable.fromPromise(BroadcastedPoll.fromAddressPromise(pollAddress));
     }
 
+    /**
+     * Gets the option address for a given option
+     * @param option - The option
+     * @return Address | null
+     */
     public getOptionAddress = (option: string): Address | null => {
         const address = this.optionAddresses[option];
         if (!address) {
@@ -165,6 +232,11 @@ class BroadcastedPoll extends Poll {
         }
     }
 
+    /**
+     * Gets the results for the poll
+     * @param pollAddress - The poll's NEM Address
+     * @return Observable<IResults>
+     */
     public getResults = (): Observable<IResults> => {
         const poll = this;
         if (poll.data.formData.type === POI_POLL) {
@@ -176,6 +248,10 @@ class BroadcastedPoll extends Poll {
         }
     }
 
+    /**
+     * validates a poll's structure and returns wether it is correct or not
+     * @return boolean
+     */
     public validate = (): boolean => {
         const sortedOptions = this.data.options.sort();
         if (sortedOptions.some((v, i, a) => (i !== 0 && a[i - 1] === v))) {
@@ -193,14 +269,32 @@ class BroadcastedPoll extends Poll {
         return (sortedOptions.every(validOptionAddress));
     }
 
+    /**
+     * Votes on the poll from a given account, returns the vote transaction result
+     * @param account - The voter account
+     * @param option - The option to vote
+     * @return Observable<NemAnnounceResult>
+     */
     public vote = (account: Account, option: string): Observable<NemAnnounceResult> => {
         return vote(account, this, option);
     }
 
+    /**
+     * Votes on the poll from a multisig account, returns the vote transaction result
+     * @param account - The cosigner account that signs the multisig transaction
+     * @param multisigAccount - The public account of the multisig account that votes
+     * @param option - The option to vote
+     * @return Observable<NemAnnounceResult>
+     */
     public voteMultisig = (account: Account, multisigAccount: PublicAccount, option: string): Observable<NemAnnounceResult> => {
         return multisigVote(account, multisigAccount, this, option);
     }
 
+    /**
+     * Gets the votes that an address has sent to the poll, if it has not voted returns null
+     * @param address - The address of the voter
+     * @return Observable<Transaction[] | null>
+     */
     public getVotes = (address: Address): Observable<Transaction[] | null> => {
         return getVotes(address, this);
     }

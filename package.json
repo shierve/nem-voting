@@ -2,8 +2,8 @@
   "name": "nem-voting",
   "version": "1.0.1",
   "description": "nem voting",
-  "main": "index.js",
-  "types": "dest/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "author": "Sergi <sergi.cg8@gmail.com>",
   "license": "MIT",
   "scripts": {

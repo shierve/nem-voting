@@ -33,7 +33,6 @@ const testPrivateKey = "c195d7699662b0e2dfae6a4aef87a082d11f74d2bd583f7dec5663a1
 //     .subscribe((broadcastedPoll) => {
 //         console.log(broadcastedPoll);
 //     });
-import CryptoJS = require("crypto-js");
-const pk = CryptoJS.SHA3(Date.now().toString(), { outputLength: 256 }).toString();
-const pa = PublicAccount.createWithPublicKey(pk);
-console.log(pa);
+
+export * from "./src/poll";
+export * from "./src/constants";

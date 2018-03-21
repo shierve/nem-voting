@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "nem voting",
   "main": "index.js",
+  "types": "dest/index.d.ts",
+  "author": "Sergi <sergi.cg8@gmail.com>",
+  "license": "MIT",
   "scripts": {
     "copyjson": "cp -r test/responses/ dist/test/responses/",
     "build": "rm -rf dist && tsc && npm run copyjson",
@@ -14,8 +17,6 @@
     "Standard",
     "Blockchain"
   ],
-  "author": "Sergi <sergi.cg8@gmail.com>",
-  "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.1.2",
     "@types/mocha": "^2.2.48",

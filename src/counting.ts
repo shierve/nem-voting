@@ -1,5 +1,5 @@
-import { AccountHttp, Address, NEMLibrary, NetworkTypes, Transaction, TransactionTypes } from "nem-library";
-import { BroadcastedPoll } from "./Poll";
+import { AccountHttp, Address, NEMLibrary, NetworkTypes, Transaction, TransactionTypes, TransferTransaction } from 'nem-library';
+import { BroadcastedPoll } from "./poll";
 import { getHeightByTimestamp, getTransactionsWithString, getAllTransactions, getTransferTransaction, getImportances } from "./utils";
 import { WHITELIST_POLL, POI_POLL } from "./constants";
 import { Observable } from "rxjs";
@@ -80,9 +80,9 @@ const getWhitelistResultsPromise = async (poll: BroadcastedPoll): Promise<IResul
     // eliminate repetitions in array (return array is sorted)
     const unique = (addresses: Address[]) => {
         return addresses.sort((a: Address, b: Address) => (a.plain().localeCompare(b.plain())))
-            .filter((item, pos, ary) => {
-                return !pos || item !== ary[pos - 1];
-            });
+        .filter((item, pos, ary) => {
+            return !pos || item.plain() !== ary[pos - 1].plain();
+        });
     };
     voteAddresses = voteAddresses.map(unique);
 
@@ -150,7 +150,7 @@ const getWhitelistResultsPromise = async (poll: BroadcastedPoll): Promise<IResul
             return addresses.filter((address) => (!nullified.includes(address)));
         });
         allAddresses = allAddresses.filter((address) => (!nullified.includes(address)));
-        allAddresses.map((address) => {
+        allAddresses.forEach((address) => {
             occurences[address.plain()] = 1;
         });
     }

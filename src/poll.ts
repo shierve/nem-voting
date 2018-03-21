@@ -276,6 +276,10 @@ class BroadcastedPoll extends Poll {
      * @return Observable<NemAnnounceResult>
      */
     public vote = (account: Account, option: string): Observable<NemAnnounceResult> => {
+        const now = Date.now();
+        if (this.data.formData.doe < now) {
+            throw new Error("Poll Ended");
+        }
         return vote(account, this, option);
     }
 
@@ -287,6 +291,10 @@ class BroadcastedPoll extends Poll {
      * @return Observable<NemAnnounceResult>
      */
     public voteMultisig = (account: Account, multisigAccount: PublicAccount, option: string): Observable<NemAnnounceResult> => {
+        const now = Date.now();
+        if (this.data.formData.doe < now) {
+            throw new Error("Poll Ended");
+        }
         return multisigVote(account, multisigAccount, this, option);
     }
 

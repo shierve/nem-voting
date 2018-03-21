@@ -1,4 +1,4 @@
-import { BroadcastedPoll } from "./Poll";
+import { BroadcastedPoll } from "./poll";
 import { Account, PublicAccount, TransferTransaction, TimeWindow, XEM, EmptyMessage, NemAnnounceResult, Address, Transaction } from "nem-library";
 import { sendMessage, sendMultisigMessage, findTransaction } from "./utils";
 import { Observable } from "rxjs";
@@ -26,7 +26,7 @@ const getVotes = (address: Address, poll: BroadcastedPoll): Observable<Transacti
         return findTransaction(address, optAddress!);
     });
     return Observable.forkJoin(promises)
-        .map((transactions) => {
+        .map((transactions: Transaction[]) => {
             const trans = transactions.filter((t) => t !== null).map((t) => t!);
             if (trans.length === 0) {
                 return null;

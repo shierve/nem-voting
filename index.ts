@@ -4,7 +4,7 @@ import { getWhitelistResults, getPOIResults, getPOIResultsCsv } from "./src/coun
 import { getHeightByTimestamp, generatePollAddress } from "./src/utils";
 import { POI_POLL } from "./src/constants";
 
-NEMLibrary.bootstrap(NetworkTypes.TEST_NET);
+// NEMLibrary.bootstrap(NetworkTypes.TEST_NET);
 const pollAddress = new Address("NALYCSZ5AUN4MZZNPVTPXMAHT7U6RHWIO4AGKYA2");
 const testPrivateKey = "c195d7699662b0e2dfae6a4aef87a082d11f74d2bd583f7dec5663a107823691";
 

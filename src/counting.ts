@@ -1,7 +1,7 @@
-import { AccountHttp, Address, NEMLibrary, NetworkTypes, Transaction, TransactionTypes, TransferTransaction } from 'nem-library';
+import { AccountHttp, Address, NEMLibrary, NetworkTypes, Transaction, TransactionTypes, TransferTransaction } from "nem-library";
 import { BroadcastedPoll } from "./poll";
 import { getHeightByTimestamp, getTransactionsWithString, getAllTransactions, getTransferTransaction, getImportances } from "./utils";
-import { WHITELIST_POLL, POI_POLL } from "./constants";
+import { PollConstants } from "./constants";
 import { Observable } from "rxjs";
 
 interface IResults {
@@ -26,7 +26,7 @@ interface IResults {
  * @return {promise} - A promise that returns the result object of the poll
  */
 const getWhitelistResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> => {
-    if (poll.data.formData.type !== WHITELIST_POLL || !poll.data.whitelist) {
+    if (poll.data.formData.type !== PollConstants.WHITELIST_POLL || !poll.data.whitelist) {
         throw new Error("Not a whitelist poll");
     }
     const whitelist = poll.data.whitelist!.map((address) => address.plain());
@@ -200,7 +200,7 @@ const getWhitelistResults = (poll: BroadcastedPoll): Observable<IResults> => {
  */
 const getPOIResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> => {
     try {
-        if (poll.data.formData.type !== POI_POLL) {
+        if (poll.data.formData.type !== PollConstants.POI_POLL) {
             throw new Error("Not a POI poll");
         }
 
@@ -399,7 +399,7 @@ const toCsv = (o: object): string => {
 
 const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
     try {
-        if (poll.data.formData.type !== POI_POLL) {
+        if (poll.data.formData.type !== PollConstants.POI_POLL) {
             throw new Error("Not a POI poll");
         }
 

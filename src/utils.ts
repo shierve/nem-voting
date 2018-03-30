@@ -12,7 +12,7 @@ let chainHttp: ChainHttp;
 let blockHttp: BlockHttp;
 let transactionHttp: TransactionHttp;
 
-const initialize = () => {
+const initializeHttp = () => {
     let nodes: ServerConfig[] = [];
 
     if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
@@ -43,9 +43,7 @@ const getTransferTransaction = (transaction: Transaction): TransferTransaction |
 };
 
 const getAllTransactions = (receiver: Address): Observable<Transaction[]> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     const pageable = accountHttp.incomingTransactionsPaginated(receiver, {pageSize: 100});
     return pageable
         .map((allTransactions) => {
@@ -76,9 +74,7 @@ const findTransaction = (sender: Address, receiver: Address): Observable<Transac
 
 const getTransactionsWithString =
 (queryString: string, receiver: Address, sender?: Address, position: number = 0): Observable<TransferTransaction[]> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     return accountHttp.incomingTransactions(receiver)
         .map((allTransactions) => {
             // We only want transfer and multisig transactions, and we are only interested in
@@ -127,23 +123,17 @@ const toNEMTimeStamp = (date: number) => {
 };
 
 const getBlockchainHeight = (): Promise<number> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     return chainHttp.getBlockchainHeight().first().toPromise();
 };
 
 const getBlockByHeight = (height: number): Promise<Block> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     return blockHttp.getBlockByHeight(height).first().toPromise();
 };
 
 const getLastBlock = (): Promise<Block> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     return chainHttp.getBlockchainLastBlock().first().toPromise();
 };
 
@@ -166,10 +156,13 @@ const getHeightByTimestampPromise = async (timestamp: number): Promise<number> =
         let foundHeight: number | null = null;
         let lastTimestamp = now;
         let lastHeight = curHeight;
-        let lb = 0;
+        let lb = 1;
         let ub = curHeight;
         // estimation
         while (foundHeight === null) {
+            if (lb === ub) {
+                return lb;
+            }
             let height = lastHeight + Math.ceil((nemTimestamp - lastTimestamp) / 60);
             if (height < lb) {
                 height = lb;
@@ -204,9 +197,7 @@ const getHeightByTimestamp = (timestamp: number) => {
 };
 
 const getImportances = (addresses: Address[], block?: number): Observable<number[]> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     if (block === undefined || block < 0) {
         return accountHttp.getBatchAccountData(addresses)
             .map((accountsData: AccountInfoWithMetaData[]) => {
@@ -225,9 +216,7 @@ const getImportances = (addresses: Address[], block?: number): Observable<number
 };
 
 const sendMessage = (account: Account, message: string, address: Address): Observable<NemAnnounceResult> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     const transferTransaction = TransferTransaction.create(
         TimeWindow.createWithDeadline(),
         address,
@@ -239,9 +228,7 @@ const sendMessage = (account: Account, message: string, address: Address): Obser
 };
 
 const sendMultisigMessage = (account: Account, multisigAccount: PublicAccount, message: string, address: Address): Observable<NemAnnounceResult> => {
-    if (!accountHttp) {
-        initialize();
-    }
+    initializeHttp();
     const transferTransaction = TransferTransaction.create(
         TimeWindow.createWithDeadline(),
         address,

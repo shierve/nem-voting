@@ -2,7 +2,7 @@ import { expect } from "chai";
 import nock = require("nock");
 import { Poll, BroadcastedPoll, IFormData } from "../src/poll";
 import { NetworkTypes, NEMLibrary, Address } from "nem-library";
-import { POI_POLL, WHITELIST_POLL } from "../src/constants";
+import { PollConstants } from "../src/constants";
 import { deriveOptionAddress } from "../src/utils";
 
 describe("Vote Counting", () => {
@@ -17,13 +17,13 @@ describe("Vote Counting", () => {
       title: "test",
       doe: Date.now() + (1000000000),
       multiple: false,
-      type: POI_POLL,
+      type: PollConstants.POI_POLL,
     } as IFormData;
     const formDataW = {
       title: "test",
       doe: Date.now() + (1000000000),
       multiple: false,
-      type: WHITELIST_POLL,
+      type: PollConstants.WHITELIST_POLL,
     } as IFormData;
     const whitelist = [
       new Address("TCZUUQIWP6WLVNAXFR3ZZH3DDHHNWX3E4THPUVRI"),

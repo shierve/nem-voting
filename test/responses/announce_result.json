@@ -1,0 +1,9 @@
+{
+	"innerTransactionHash": {},
+	"code": 1,
+	"type": 1,
+	"message": "SUCCESS",
+	"transactionHash": {
+		"data": "b13aeda0943fc3166d8c3d3c67ae0b9a8bef8f5087567939fe0141c154b4441a"
+	}
+}

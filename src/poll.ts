@@ -1,7 +1,7 @@
 import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, sendMessage } from "./utils";
 import { Address, NEMLibrary, NetworkTypes, Account, NemAnnounceResult, PublicAccount, Transaction } from "nem-library";
-import { WHITELIST_POLL, POI_POLL, MAINNET_POLL_INDEX, TESTNET_POLL_INDEX } from "./constants";
-import { IResults, getWhitelistResults, getPOIResults } from "./counting";
+import { PollConstants } from "./constants";
+import { IResults, getWhitelistResults, getPOIResults, getPOIResultsCsv } from "./counting";
 import { Observable } from "rxjs";
 import { vote, multisigVote, getVotes } from "./voting";
 
@@ -99,7 +99,7 @@ class UnbroadcastedPoll extends Poll {
             const descriptionPromise = sendMessage(account, descriptionMessage, pollAddress).first().toPromise();
             const optionsPromise = sendMessage(account, optionsMessage, pollAddress).first().toPromise();
             const messagePromises = [formDataPromise, descriptionPromise, optionsPromise];
-            if (this.data.formData.type === WHITELIST_POLL) {
+            if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
                 const whitelistMessage = "whitelist:" + JSON.stringify(this.data.whitelist);
                 const whitelistPromise = sendMessage(account, whitelistMessage, pollAddress).first().toPromise();
                 messagePromises.push(whitelistPromise);
@@ -113,7 +113,7 @@ class UnbroadcastedPoll extends Poll {
             };
             const headerMessage = "poll:" + JSON.stringify(header);
             const pollIndexAddress = (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) ?
-                new Address(MAINNET_POLL_INDEX) : new Address(TESTNET_POLL_INDEX);
+                new Address(PollConstants.MAINNET_POLL_INDEX) : new Address(PollConstants.TESTNET_POLL_INDEX);
             await sendMessage(account, headerMessage, pollIndexAddress).first().toPromise();
             return new BroadcastedPoll(this.data.formData, this.data.description, this.data.options, pollAddress, link, this.data.whitelist);
         } catch (err) {
@@ -194,7 +194,7 @@ class BroadcastedPoll extends Poll {
                 throw Error("Poll is invalid");
             }
 
-            if (formData.type === WHITELIST_POLL) {
+            if (formData.type === PollConstants.WHITELIST_POLL) {
                 const whitelistString = await getFirstMessageWithString("whitelist:", pollAddress).first().toPromise();
                 if (whitelistString === null) {
                     throw new Error("Error fetching poll");
@@ -239,12 +239,26 @@ class BroadcastedPoll extends Poll {
      */
     public getResults = (): Observable<IResults> => {
         const poll = this;
-        if (poll.data.formData.type === POI_POLL) {
+        if (poll.data.formData.type === PollConstants.POI_POLL) {
             return getPOIResults(poll);
-        } else if (poll.data.formData.type === WHITELIST_POLL) {
+        } else if (poll.data.formData.type === PollConstants.WHITELIST_POLL) {
             return getWhitelistResults(poll);
         } else {
             throw new Error("unsupported type");
+        }
+    }
+
+    /**
+     * Gets the results for the poll as a csv string
+     * @param pollAddress - The poll's NEM Address
+     * @return Observable<IResults>
+     */
+    public getCsvResults = (): Observable<string> => {
+        const poll = this;
+        if (poll.data.formData.type === PollConstants.POI_POLL) {
+            return Observable.fromPromise(getPOIResultsCsv(poll));
+        } else {
+            throw new Error("CSV results only available for POI polls");
         }
     }
 

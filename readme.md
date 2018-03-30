@@ -119,13 +119,6 @@ class UnbroadcastedPoll extends Poll {
     constructor(formData: IFormData, description: string, options: string[], whitelist?: Address[]);
 
     /**
-     * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object (as a promise)
-     * @param account - NEM Account that will broadcast the poll
-     * @return Promise<BroadcastedPoll>
-     */
-    private broadcastPromise = async (account: Account): Promise<BroadcastedPoll>;
-
-    /**
      * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object as an Observable
      * @param account - NEM Account that will broadcast the poll
      * @return Observable<BroadcastedPoll>

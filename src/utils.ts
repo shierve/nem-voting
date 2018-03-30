@@ -51,7 +51,7 @@ const getAllTransactions = (receiver: Address): Observable<Transaction[]> => {
             return allTransactions.filter((t) => (t.type === TransactionTypes.MULTISIG || t.type === TransactionTypes.TRANSFER));
         }).reduce((acc, page) => {
             return acc.concat(page);
-        });
+        }, []);
 };
 
 const findTransaction = (sender: Address, receiver: Address): Observable<Transaction | null> => {

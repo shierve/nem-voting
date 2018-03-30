@@ -18,5 +18,45 @@ The module contains two main classes: UnbroadcastedPoll and BroadcastedPoll. The
 ### Creating and Broadcasting a Poll to the blockchain
 
 ```typescript
+import { PollConstants, UnbroadcastedPoll, BroadcastedPoll } from "nem-voting";
+import { NEMLibrary, NetworkTypes, Account } from "nem-library";
 
+NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+const testPrivateKey = ""; // introduce the poll creator private key
+
+const formData = {
+    title: "test poll",
+    doe: Date.now() + (60 * 1000 * 60), // Date of ending as timestamp in milliseconds
+    type: PollConstants.POI_POLL, // type of vote counting
+    multiple: false, // true if multiple votes are allowed
+};
+const description = "This is the description for the poll";
+const options = ["option 1", "option 2"];
+
+const poll = new UnbroadcastedPoll(formData, description, options);
+const account = Account.createWithPrivateKey(testPrivateKey);
+
+poll.broadcast(account)
+    .subscribe((broadcastedPoll) => {
+        console.log(broadcastedPoll); // We get the broadcasted poll data, including the poll address and the option addresses
+    });
+```
+
+### Fetching a Poll from the blockchain and getting results
+
+```typescript
+import { BroadcastedPoll } from "nem-voting";
+import { NEMLibrary, Address, NetworkTypes } from "nem-library";
+
+NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R");
+
+BroadcastedPoll.fromAddress(pollAddress)
+    .switchMap((poll) => {
+        console.log("details:", poll);
+        return poll.getResults();
+    })
+    .subscribe((results) => {
+        console.log(results);
+    });
 ```

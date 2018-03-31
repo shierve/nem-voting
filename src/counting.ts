@@ -437,7 +437,7 @@ const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
                 const block = transaction.getTransactionInfo().height;
                 const multisig = (trans.type === TransactionTypes.MULTISIG);
                 let validity = "Valid";
-                if (block > endBlock) {
+                if (endBlock > 0 && block > endBlock) {
                     validity = "Too Late";
                 }
                 if (transaction.containsMosaics() || !(transaction.xem().amount ===  0)) {

@@ -136,7 +136,7 @@ describe("Vote Counting", () => {
 
     poiPoll.getCsvResults()
       .subscribe((results) => {
-        expect(results).to.equal("address,block,validity,multisig,option,importance\nTBWHIYVVIW4UGTE2XCH44TDFOU3WDPOIE7MM4JGQ,1052871,Too Late,true,yes,0.03\nTCZUUQIWP6WLVNAXFR3ZZH3DDHHNWX3E4THPUVRI,1136935,Too Late,false,yes,0.05\nTCAZUINIHBMMMD6IFFZLELPQ325WKUIHXDWNCX4H,1122662,Too Late,false,yes,0.04\nTDAPPLD7ZDWVWOR3NXBIDI2WCXNSHNU2BTMDP3JE,1122662,Multiple Vote,false,no,0.06\nTAEBRAICH3J276D2RSQVBAHYOTSQCHTCLO2PKSB2,1046691,Not a 0xem transaction,false,no,0.01\nTB3AXQETJ4BWKHISCH3MFLLOJXS7GSF5JI5JBBVZ,1046698,Too Late,false,no,0.02\n");
+        expect(results).to.equal("address,block,validity,multisig,option,importance\nTBWHIYVVIW4UGTE2XCH44TDFOU3WDPOIE7MM4JGQ,1,Valid,true,yes,0.03\nTCZUUQIWP6WLVNAXFR3ZZH3DDHHNWX3E4THPUVRI,1,Valid,false,yes,0.05\nTCAZUINIHBMMMD6IFFZLELPQ325WKUIHXDWNCX4H,1,Valid,false,yes,0.04\nTDAPPLD7ZDWVWOR3NXBIDI2WCXNSHNU2BTMDP3JE,1,Multiple Vote,false,no,0.06\nTAEBRAICH3J276D2RSQVBAHYOTSQCHTCLO2PKSB2,1,Not a 0xem transaction,false,no,0.01\nTB3AXQETJ4BWKHISCH3MFLLOJXS7GSF5JI5JBBVZ,1,Valid,false,no,0.02\n");
         done();
       });
   });

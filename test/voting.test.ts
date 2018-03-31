@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import nock = require("nock");
 import { Poll, BroadcastedPoll, IFormData } from "../src/poll";
-import { NetworkTypes, NEMLibrary, Address, Account, TransactionTypes } from "nem-library";
+import { NetworkTypes, NEMLibrary, Address, Account, TransactionTypes, PublicAccount } from "nem-library";
 import { PollConstants } from "../src/constants";
 import { deriveOptionAddress } from "../src/utils";
 
@@ -78,6 +78,27 @@ describe("Voting", () => {
         expect(votes).to.not.be.a("null");
         expect(votes!.length).to.equal(1);
         expect(votes![0].type).to.equal(TransactionTypes.MULTISIG);
+        done();
+      });
+  });
+
+  it("should be able to broadcast a multisig vote", (done) => {
+    const nk = nock("http://104.128.226.60:7890")
+    .post("/transaction/announce", (body) => {
+        expect(body).to.have.property("data");
+        expect(body).to.have.property("signature");
+        return true;
+    })
+    .once()
+    .replyWithFile(200, __dirname + "/responses/announce_result.json");
+    const testPrivateKey =
+      "c195d7699662b0e2dfae6a4aef87a082d1000000000000000000000000000000";
+    const account = Account.createWithPrivateKey(testPrivateKey);
+    const multisigAccount = PublicAccount.createWithPublicKey("a0277cf57efb7fbd5b76d5f66b197ea4da2cb03f277d0ce65795ddf75000b679");
+    poiPoll.voteMultisig(account, multisigAccount, "yes")
+      .subscribe((result) => {
+        nk.done();
+        expect(result.message).to.equal("SUCCESS");
         done();
       });
   });

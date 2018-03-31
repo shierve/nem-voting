@@ -468,7 +468,7 @@ const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
         const unique = (addresses: Address[]) => {
             return addresses.sort((a: Address, b: Address) => (a.plain().localeCompare(b.plain())))
                 .filter((item, pos, ary) => {
-                    return !pos || item !== ary[pos - 1];
+                    return !pos || item.plain() !== ary[pos - 1].plain();
                 });
         };
         voteAddresses = voteAddresses.map(unique);
@@ -511,15 +511,14 @@ const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
         // Since we deleted repeated votes in the same option, we can know all repetitions now mean they voted in more than one option
         const nullified = allAddresses.filter((item, pos, ary) => {
             return pos && item.plain() === ary[pos - 1].plain();
-        });
+        }).map((address) => address.plain());
         // mark null votes
         nullified.forEach((address) => {
-            votesObj[address.plain()].validity = "Multiple Vote";
+            votesObj[address].validity = "Multiple Vote";
         });
 
         // We only want to query for importance once for every account
         const uniqueAllAddresses = unique(allAddresses);
-        // Only valid votes now on voteAddresses and allAddresses
         // Get Importances
         const importances = await getImportances(uniqueAllAddresses, endBlock).first().toPromise();
 

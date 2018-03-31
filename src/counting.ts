@@ -144,12 +144,12 @@ const getWhitelistResultsPromise = async (poll: BroadcastedPoll): Promise<IResul
         // Since we deleted repeated votes in the same option, we can know all repetitions now mean they voted in more than one option
         const nullified = allAddresses.filter((item, pos, ary) => {
             return pos && item === ary[pos - 1];
-        });
+        }).map((address) => address.plain());
         // remove null votes
         voteAddresses = voteAddresses.map((addresses) => {
-            return addresses.filter((address) => (!nullified.includes(address)));
+            return addresses.filter((address) => (!nullified.includes(address.plain())));
         });
-        allAddresses = allAddresses.filter((address) => (!nullified.includes(address)));
+        allAddresses = allAddresses.filter((address) => (!nullified.includes(address.plain())));
         allAddresses.forEach((address) => {
             occurences[address.plain()] = 1;
         });
@@ -253,9 +253,9 @@ const getPOIResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> =>
         // eliminate repetitions in array (return array is sorted)
         const unique = (addresses: Address[]) => {
             return addresses.sort((a: Address, b: Address) => (a.plain().localeCompare(b.plain())))
-                .filter((item, pos, ary) => {
-                    return !pos || item !== ary[pos - 1];
-                });
+            .filter((item, pos, ary) => {
+                return (pos === 0) || item.plain() !== ary[pos - 1].plain();
+            });
         };
         voteAddresses = voteAddresses.map(unique);
 
@@ -317,12 +317,12 @@ const getPOIResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> =>
             // Since we deleted repeated votes in the same option, we can know all repetitions now mean they voted in more than one option
             const nullified = allAddresses.filter((item, pos, ary) => {
                 return pos && item.plain() === ary[pos - 1].plain();
-            });
+            }).map((address) => address.plain());
             // remove null votes
             voteAddresses = voteAddresses.map((addresses) => {
-                return addresses.filter((address) => (!nullified.includes(address)));
+                return addresses.filter((address) => (!nullified.includes(address.plain())));
             });
-            allAddresses = allAddresses.filter((address) => (!nullified.includes(address)));
+            allAddresses = allAddresses.filter((address) => (!nullified.includes(address.plain())));
             allAddresses.map((address) => {
                 occurences[address.plain()] = 1;
             });

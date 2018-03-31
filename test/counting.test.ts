@@ -9,6 +9,8 @@ describe("Vote Counting", () => {
   let address: Address;
   let poiPoll: BroadcastedPoll;
   let wPoll: BroadcastedPoll;
+  let yesAddress: Address;
+  let noAddress: Address;
 
   beforeEach(() => {
     NEMLibrary.bootstrap(NetworkTypes.TEST_NET);
@@ -29,14 +31,22 @@ describe("Vote Counting", () => {
       new Address("TCZUUQIWP6WLVNAXFR3ZZH3DDHHNWX3E4THPUVRI"),
       new Address("TB3AXQETJ4BWKHISCH3MFLLOJXS7GSF5JI5JBBVZ"),
     ];
-    const yesAddress = deriveOptionAddress(address, "yes");
-    const noAddress = deriveOptionAddress(address, "no");
+    yesAddress = deriveOptionAddress(address, "yes");
+    noAddress = deriveOptionAddress(address, "no");
     const link = {
       yes: yesAddress,
       no: noAddress,
     };
     poiPoll = new BroadcastedPoll(formDataPOI, "description", ["yes", "no"], address, link);
     wPoll = new BroadcastedPoll(formDataW, "description", ["yes", "no"], address, link, whitelist);
+  });
+
+  afterEach(() => {
+    NEMLibrary.reset();
+    nock.cleanAll();
+  });
+
+  it("should count votes correctly on POI polls", (done) => {
     nock("http://104.128.226.60:7890")
       .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
       .once()
@@ -52,14 +62,7 @@ describe("Vote Counting", () => {
       .post("/account/get/batch")
       .once()
       .replyWithFile(200, __dirname + "/responses/account_data.json");
-  });
 
-  afterEach(() => {
-    NEMLibrary.reset();
-    nock.cleanAll();
-  });
-
-  it("should count votes correctly on POI polls", (done) => {
     poiPoll.getResults()
       .subscribe((results) => {
         expect(results.totalVotes).to.be.equal(4);
@@ -80,6 +83,22 @@ describe("Vote Counting", () => {
   });
 
   it("should count votes correctly on whitelist polls", (done) => {
+    nock("http://104.128.226.60:7890")
+      .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
+      .once()
+      .replyWithFile(200, __dirname + "/responses/transactions_1.json")
+      .get("/account/transfers/incoming?address=" + noAddress.plain() + "&pageSize=100")
+      .once()
+      .replyWithFile(200, __dirname + "/responses/transactions_2.json")
+      .get((uri) => {
+        return uri.includes("/incoming");
+      })
+      .thrice()
+      .replyWithFile(200, __dirname + "/responses/empty.json")
+      .post("/account/get/batch")
+      .once()
+      .replyWithFile(200, __dirname + "/responses/account_data.json");
+
     wPoll.getResults()
       .subscribe((results) => {
         expect(results.totalVotes).to.be.equal(2);
@@ -98,4 +117,39 @@ describe("Vote Counting", () => {
         done();
       });
   });
+  // it("should generate a csv string successfully", (done) => {
+  //   nock("http://104.128.226.60:7890")
+  //     .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
+  //     .once()
+  //     .replyWithFile(200, __dirname + "/responses/transactions_1.json")
+  //     .get("/account/transfers/incoming?address=" + noAddress.plain() + "&pageSize=100")
+  //     .once()
+  //     .replyWithFile(200, __dirname + "/responses/transactions_2.json")
+  //     .get((uri) => {
+  //       return uri.includes("/incoming");
+  //     })
+  //     .thrice()
+  //     .replyWithFile(200, __dirname + "/responses/empty.json")
+  //     .post("/account/get/batch")
+  //     .once()
+  //     .replyWithFile(200, __dirname + "/responses/account_data.json");
+
+  //   wPoll.getResults()
+  //     .subscribe((results) => {
+  //       expect(results.totalVotes).to.be.equal(2);
+  //       expect(results.options[0]).to.deep.equal({
+  //         text: "yes",
+  //         votes: 1,
+  //         weighted: 1,
+  //         percentage: 50,
+  //       });
+  //       expect(results.options[1]).to.deep.equal({
+  //         text: "no",
+  //         votes: 1,
+  //         weighted: 1,
+  //         percentage: 50,
+  //       });
+  //       done();
+  //     });
+  // });
 });

@@ -11,7 +11,7 @@
         "address": "TALICEROONSJCPHC63F52V6FY3SDMSVAEUGHMB7C",
         "harvestedBlocks": 156655,
         "balance": 50485370463914,
-        "importance": 0.1,
+        "importance": 0.01,
         "vestedBalance": 50485122296835,
         "publicKey":
           "74375c15c6ce6bdbde59be88a069745a0de34444ea933f8c9f46ef407cf30196",
@@ -30,7 +30,7 @@
         "address": "TALICEROONSJCPHC63F52V6FY3SDMSVAEUGHMB7C",
         "harvestedBlocks": 156655,
         "balance": 50485370463914,
-        "importance": 0.2,
+        "importance": 0.02,
         "vestedBalance": 50485122296835,
         "publicKey":
           "74375c15c6ce6bdbde59be88a069745a0de34444ea933f8c9f46ef407cf30196",
@@ -49,7 +49,7 @@
         "address": "TALICEROONSJCPHC63F52V6FY3SDMSVAEUGHMB7C",
         "harvestedBlocks": 156655,
         "balance": 50485370463914,
-        "importance": 0.3,
+        "importance": 0.03,
         "vestedBalance": 50485122296835,
         "publicKey":
           "74375c15c6ce6bdbde59be88a069745a0de34444ea933f8c9f46ef407cf30196",
@@ -68,7 +68,45 @@
         "address": "TALIC37D2B7KRFHGXRJAQO67YWOUWWA36OU46HSG",
         "harvestedBlocks": 153954,
         "balance": 50648302674554,
-        "importance": 0.4,
+        "importance": 0.04,
+        "vestedBalance": 50648133599205,
+        "publicKey":
+          "76164494236c9aa3e4731dddfa67f28b4cb0be077690abe52a664302e3e57d24",
+        "label": null,
+        "multisigInfo": {}
+      }
+    },
+    {
+      "meta": {
+        "cosignatories": [],
+        "cosignatoryOf": [],
+        "status": "LOCKED",
+        "remoteStatus": "INACTIVE"
+      },
+      "account": {
+        "address": "TALIC37D2B7KRFHGXRJAQO67YWOUWWA36OU46HSG",
+        "harvestedBlocks": 153954,
+        "balance": 50648302674554,
+        "importance": 0.05,
+        "vestedBalance": 50648133599205,
+        "publicKey":
+          "76164494236c9aa3e4731dddfa67f28b4cb0be077690abe52a664302e3e57d24",
+        "label": null,
+        "multisigInfo": {}
+      }
+    },
+    {
+      "meta": {
+        "cosignatories": [],
+        "cosignatoryOf": [],
+        "status": "LOCKED",
+        "remoteStatus": "INACTIVE"
+      },
+      "account": {
+        "address": "TALIC37D2B7KRFHGXRJAQO67YWOUWWA36OU46HSG",
+        "harvestedBlocks": 153954,
+        "balance": 50648302674554,
+        "importance": 0.06,
         "vestedBalance": 50648133599205,
         "publicKey":
           "76164494236c9aa3e4731dddfa67f28b4cb0be077690abe52a664302e3e57d24",

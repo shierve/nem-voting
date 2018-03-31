@@ -62,7 +62,7 @@ const findTransaction = (sender: Address, receiver: Address): Observable<Transac
                 if (!tt) {
                     return false;
                 }
-                return (tt.signer!.address === sender);
+                return (tt.signer!.address.plain() === sender.plain());
             });
             if (filtered.length === 0) {
                 return null;

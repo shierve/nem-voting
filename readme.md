@@ -2,6 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/nem-voting.svg)](https://badge.fury.io/js/nem-voting)
 [![Build Status](https://travis-ci.org/shierve/nem-voting.svg?branch=master)](https://travis-ci.org/shierve/nem-voting)
+[![Coverage Status](https://coveralls.io/repos/github/shierve/nem-voting/badge.svg?branch=master)](https://coveralls.io/github/shierve/nem-voting?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 nem-voting is a typescript / node.js module for using the NEM voting functionalities easily on any project. Created using NEM-library.

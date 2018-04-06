@@ -2,6 +2,9 @@ import { Address, TransactionTypes, PlainMessage, Account } from "nem-library";
 import { Observable } from "rxjs";
 import { getFirstMessageWithString, getTransactionsWithString, generateRandomAddress, sendMessage } from "./utils";
 
+/**
+ * Represents the info from a poll header sent to an index
+ */
 interface IPollHeader {
     title: string;
     type: number;
@@ -9,23 +12,52 @@ interface IPollHeader {
     address: Address;
 }
 
+/**
+ * Contains the info for a poll index, public or private
+ */
 class PollIndex {
+    /**
+     * Poll Index Address
+     */
     public address: Address;
+    /**
+     * true if the index is private. On private indexes only the creator can send valid polls
+     */
     public isPrivate: boolean;
+    /**
+     * the creator of the poll, only needed for private indexes
+     */
+    public creator?: Address;
+    /**
+     * array of broadcasted header polls for the index
+     */
     public headers: IPollHeader[];
 
-    constructor(address: Address, isPrivate: boolean, headers: IPollHeader[]) {
+    constructor(address: Address, isPrivate: boolean, headers: IPollHeader[], creator?: Address) {
         this.address = address;
         this.isPrivate = isPrivate;
         this.headers = headers;
+        this.creator = creator;
     }
 
+    /**
+     * Gets a poll index from its address with all of its broadcasted polls
+     * @param address - the index account address
+     * @return Observable<PollIndex>
+     */
     public static fromAddress = (address: Address): Observable<PollIndex> => {
-        let isPrivate: boolean;
+        let indexObject: {
+            isPrivate: boolean;
+            creator?: string;
+        };
         return getFirstMessageWithString("pollIndex:", address)
             .switchMap((indexMessage) => {
-                isPrivate = JSON.parse(indexMessage!.replace("pollIndex:", "")).private;
-                return getTransactionsWithString("poll:", address);
+                indexObject = JSON.parse(indexMessage!.replace("pollIndex:", "")).private;
+                if (indexObject.isPrivate) {
+                    return getTransactionsWithString("poll:", address, new Address(indexObject.creator!));
+                } else {
+                    return getTransactionsWithString("poll:", address);
+                }
             }).map((transactions) => {
                 const headers = transactions.map((transaction) => {
                     try {
@@ -43,14 +75,30 @@ class PollIndex {
                         return null;
                     }
                 }).filter((h) => h !== null).map((h) => h!);
-                return new PollIndex(address, isPrivate, headers);
+                if (indexObject.isPrivate) {
+                    return new PollIndex(address, indexObject.isPrivate, headers, new Address(indexObject.creator!));
+                } else {
+                    return new PollIndex(address, indexObject.isPrivate, headers);
+                }
             });
     }
 
+    /**
+     * Creates a new poll Index
+     * @param account - the account that creates the index
+     * @param isPrivate - will create a private index if true
+     * @return Observable<PollIndex>
+     */
     public static create = (account: Account, isPrivate: boolean): Observable<PollIndex> => {
         const address = generateRandomAddress();
         const ownMessage = "createdPollIndex:" + address.plain();
-        const indexMessage = "pollIndex:" + JSON.stringify({ private: isPrivate });
+        const obj: {[key: string]: any} = {
+            private: isPrivate,
+        };
+        if (isPrivate) {
+            obj.creator = account.address;
+        }
+        const indexMessage = "pollIndex:" + JSON.stringify(obj);
         return sendMessage(account, indexMessage, address)
             .switchMap((announce) => {
                 return sendMessage(account, ownMessage, account.address);
@@ -60,6 +108,11 @@ class PollIndex {
     }
 }
 
+/**
+ * Gets the addresses for all the poll indexes created by an address
+ * @param creator - the address of the creator of the indexes we want
+ * @return Observable<Address[]>
+ */
 const getCreatedIndexAddresses = (creator: Address): Observable<Address[]> => {
     return getTransactionsWithString("createdPollIndex:", creator, creator)
         .map((transactions) => {

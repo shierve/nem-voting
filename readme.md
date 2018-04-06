@@ -22,7 +22,7 @@ to install the npm module on your typescript or node project run:
 
 The module exports two main classes: UnbroadcastedPoll and BroadcastedPoll. They represent polls that exist only locally and polls that exist in the blockchain, respectively.
 
-It also exports a PollConstants object with various usefull constants for voting.
+It also exports a PollConstants object with various usefull constants for voting and a PollIndex object for handling indexes other than the public one (public and private), along with some useful functions specified below.
 
 ### Creating and Broadcasting a Poll to the blockchain
 
@@ -122,6 +122,8 @@ class UnbroadcastedPoll extends Poll {
     /**
      * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object as an Observable
      * @param account - NEM Account that will broadcast the poll
+     * @param pollIndex - optionally provide the poll index to send the poll to.
+     *                    If not specified the default public index is used
      * @return Observable<BroadcastedPoll>
      */
     public broadcast = (account: Account): Observable<BroadcastedPoll>;
@@ -268,6 +270,64 @@ export const PollConstants = {
     TESTNET_POLL_INDEX: "TAVGTNCVGALLUPZC4JTLKR2WX25RQM2QOK5BHBKC",
     MAINNET_POLL_INDEX: "NAZN26HYB7C5HVYVJ4SL3KBTDT773NZBAOMGRFZB",
 };
+```
+
+### Poll Indexes
+
+```typescript
+/**
+ * Represents the info from a poll header sent to an index
+ */
+interface IPollHeader {
+    title: string;
+    type: number;
+    doe: number;
+    address: Address;
+}
+
+/**
+ * Contains the info for a poll index, public or private
+ */
+class PollIndex {
+    /**
+     * Poll Index Address
+     */
+    public address: Address;
+    /**
+     * true if the index is private. On private indexes only the creator can send valid polls
+     */
+    public isPrivate: boolean;
+    /**
+     * the creator of the poll, only needed for private indexes
+     */
+    public creator?: Address;
+    /**
+     * array of broadcasted header polls for the index
+     */
+    public headers: IPollHeader[];
+
+    /**
+     * Gets a poll index from its address with all of its broadcasted polls
+     * @param address - the index account address
+     * @return Observable<PollIndex>
+     */
+    public static fromAddress = (address: Address): Observable<PollIndex>;
+
+    /**
+     * Creates a new poll Index
+     * @param account - the account that creates the index
+     * @param isPrivate - will create a private index if true
+     * @return Observable<PollIndex>
+     */
+    public static create = (account: Account, isPrivate: boolean): Observable<PollIndex>;
+}
+
+/**
+ * Gets the addresses for all the poll indexes created by an address
+ * @param creator - the address of the creator of the indexes we want
+ * @return Observable<Address[]>
+ */
+const getCreatedIndexAddresses = (creator: Address): Observable<Address[]>;
 ```
 
 ## Technical specification <a name="specification"></a>

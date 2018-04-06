@@ -132,6 +132,8 @@ class UnbroadcastedPoll extends Poll {
     /**
      * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object as an Observable
      * @param account - NEM Account that will broadcast the poll
+     * @param pollIndex - optionally provide the poll index to send the poll to.
+     *                    If not specified the default public index is used
      * @return Observable<BroadcastedPoll>
      */
     public broadcast = (account: Account, pollIndex?: PollIndex): Observable<BroadcastedPoll> => {

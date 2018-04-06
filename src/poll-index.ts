@@ -60,4 +60,18 @@ class PollIndex {
     }
 }
 
-export { PollIndex, IPollHeader };
+const getCreatedIndexAddresses = (creator: Address): Observable<Address[]> => {
+    return getTransactionsWithString("createdPollIndex:", creator, creator)
+        .map((transactions) => {
+            return transactions.map((transaction) => {
+                try {
+                    const address = (transaction.message as PlainMessage).plain().replace("createdPollIndex:", "");
+                    return new Address(address);
+                } catch (err) {
+                    return null;
+                }
+            }).filter((h) => h !== null).map((h) => h!);
+        });
+};
+
+export { PollIndex, IPollHeader, getCreatedIndexAddresses };

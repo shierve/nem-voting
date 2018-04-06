@@ -4,6 +4,7 @@ import { PollConstants } from "./constants";
 import { IResults, getWhitelistResults, getPOIResults, getPOIResultsCsv } from "./counting";
 import { Observable } from "rxjs";
 import { vote, multisigVote, getVotes } from "./voting";
+import { PollIndex } from "./poll-index";
 
 interface IFormData {
     /**
@@ -78,9 +79,11 @@ class UnbroadcastedPoll extends Poll {
     /**
      * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object (as a promise)
      * @param account - NEM Account that will broadcast the poll
+     * @param pollIndex - optionally provide the poll index to send the poll to.
+     *                    If not specified the default public index is used
      * @return Promise<BroadcastedPoll>
      */
-    private broadcastPromise = async (account: Account): Promise<BroadcastedPoll> => {
+    private broadcastPromise = async (account: Account, pollIndex?: PollIndex): Promise<BroadcastedPoll> => {
         try {
             const pollAddress = generatePollAddress(this.data.formData.title, account.publicKey);
             const link: IAddressLink = {};
@@ -112,8 +115,13 @@ class UnbroadcastedPoll extends Poll {
                 address: pollAddress.plain(),
             };
             const headerMessage = "poll:" + JSON.stringify(header);
-            const pollIndexAddress = (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) ?
-                new Address(PollConstants.MAINNET_POLL_INDEX) : new Address(PollConstants.TESTNET_POLL_INDEX);
+            let pollIndexAddress: Address;
+            if (pollIndex) {
+                pollIndexAddress = pollIndex.address;
+            } else {
+                pollIndexAddress = (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) ?
+                    new Address(PollConstants.MAINNET_POLL_INDEX) : new Address(PollConstants.TESTNET_POLL_INDEX);
+            }
             await sendMessage(account, headerMessage, pollIndexAddress).first().toPromise();
             return new BroadcastedPoll(this.data.formData, this.data.description, this.data.options, pollAddress, link, this.data.whitelist);
         } catch (err) {
@@ -126,8 +134,8 @@ class UnbroadcastedPoll extends Poll {
      * @param account - NEM Account that will broadcast the poll
      * @return Observable<BroadcastedPoll>
      */
-    public broadcast = (account: Account): Observable<BroadcastedPoll> => {
-        return Observable.fromPromise(this.broadcastPromise(account));
+    public broadcast = (account: Account, pollIndex?: PollIndex): Observable<BroadcastedPoll> => {
+        return Observable.fromPromise(this.broadcastPromise(account, pollIndex));
     }
 }
 

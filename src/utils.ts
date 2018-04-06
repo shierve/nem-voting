@@ -244,7 +244,7 @@ const sendMultisigMessage = (account: Account, multisigAccount: PublicAccount, m
     return transactionHttp.announceTransaction(signedTransaction);
 };
 
-const publicKeyToAddress = (pubKey: string) => {
+const publicKeyToAddress = (pubKey: string): Address => {
     if (pubKey[0] >= "8") {
         pubKey = "00" + pubKey;
     }
@@ -253,7 +253,7 @@ const publicKeyToAddress = (pubKey: string) => {
 };
 
 // Poll Address from index information and creator
-const generatePollAddress = (title: string, publicKey: string) => {
+const generatePollAddress = (title: string, publicKey: string): Address => {
     const pk = CryptoJS.SHA3(publicKey + title, { outputLength: 256 }).toString();
     const pa = PublicAccount.createWithPublicKey(pk);
     return pa.address;
@@ -265,8 +265,13 @@ const deriveOptionAddress = (pollAddress: Address, option: string): Address => {
     return publicKeyToAddress(pubKey);
 };
 
+const generateRandomAddress = (): Address => {
+    const pk = ((CryptoJS.lib.WordArray as any).random(32) as CryptoJS.WordArray).toString();
+    return publicKeyToAddress(pk);
+};
+
 export {
     getImportances, getHeightByTimestamp, findTransaction, getHeightByTimestampPromise, getFirstMessageWithString,
     getTransactionsWithString, getAllTransactions, getTransferTransaction, sendMessage, sendMultisigMessage,
-    generatePollAddress, deriveOptionAddress,
+    generatePollAddress, deriveOptionAddress, generateRandomAddress,
 };

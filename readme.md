@@ -283,6 +283,7 @@ interface IPollHeader {
     type: number;
     doe: number;
     address: Address;
+    whitelist?: Address[];
 }
 
 /**

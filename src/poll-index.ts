@@ -10,6 +10,7 @@ interface IPollHeader {
     type: number;
     doe: number;
     address: Address;
+    whitelist?: Address[];
 }
 
 /**
@@ -65,11 +66,12 @@ class PollIndex {
                             return null;
                         }
                         const header = JSON.parse((transaction.message as PlainMessage).plain().replace("poll:", ""));
-                        return {
+                        const h = {
                             title: header.title,
                             type: header.type,
                             doe: header.doe,
                             address: new Address(header.address),
+                            whitelist: header.whitelist,
                         } as IPollHeader;
                     } catch (err) {
                         return null;

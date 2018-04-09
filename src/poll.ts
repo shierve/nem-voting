@@ -103,17 +103,20 @@ class UnbroadcastedPoll extends Poll {
             const optionsPromise = sendMessage(account, optionsMessage, pollAddress).first().toPromise();
             const messagePromises = [formDataPromise, descriptionPromise, optionsPromise];
             if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
-                const whitelistMessage = "whitelist:" + JSON.stringify(this.data.whitelist);
+                const whitelistMessage = "whitelist:" + JSON.stringify(this.data.whitelist!.map((a) => a.plain()));
                 const whitelistPromise = sendMessage(account, whitelistMessage, pollAddress).first().toPromise();
                 messagePromises.push(whitelistPromise);
             }
             await Promise.all(messagePromises);
-            const header = {
+            const header: {[key: string]: any} = {
                 title: this.data.formData.title,
                 type: this.data.formData.type,
                 doe: this.data.formData.doe,
                 address: pollAddress.plain(),
             };
+            if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
+                header.whitelist = this.data.whitelist!.map((a) => a.plain());
+            }
             const headerMessage = "poll:" + JSON.stringify(header);
             let pollIndexAddress: Address;
             if (pollIndex) {

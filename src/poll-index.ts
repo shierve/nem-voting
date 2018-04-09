@@ -66,7 +66,7 @@ class PollIndex {
                             return null;
                         }
                         const header = JSON.parse((transaction.message as PlainMessage).plain().replace("poll:", ""));
-                        const h = {
+                        return {
                             title: header.title,
                             type: header.type,
                             doe: header.doe,

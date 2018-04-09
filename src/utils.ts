@@ -75,7 +75,7 @@ const findTransaction = (sender: Address, receiver: Address): Observable<Transac
 const getTransactionsWithString =
 (queryString: string, receiver: Address, sender?: Address, position: number = 0): Observable<TransferTransaction[]> => {
     initializeHttp();
-    return accountHttp.incomingTransactions(receiver)
+    return getAllTransactions(receiver)
         .map((allTransactions) => {
             // We only want transfer and multisig transactions, and we are only interested in
             // the inner transaction for multisig transactions

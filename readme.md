@@ -126,7 +126,7 @@ class UnbroadcastedPoll extends Poll {
      *                    If not specified the default public index is used
      * @return Observable<BroadcastedPoll>
      */
-    public broadcast = (account: Account): Observable<BroadcastedPoll>;
+    public broadcast = (account: Account, pollIndex?: PollIndex): Observable<BroadcastedPoll>;
 }
 ```
 
@@ -182,6 +182,7 @@ interface IAddressLink {
  * A broadcasted poll. Exists in the blockchain
  */
 class BroadcastedPoll extends Poll {
+    public readonly data: IPollData;
     /**
      * The poll address
      */

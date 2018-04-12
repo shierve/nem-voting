@@ -354,7 +354,7 @@ const getPOIResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> =>
 
         const totalVotes = allAddresses.length;
         const optionResults = poll.data.options.map((option, i) => {
-            const percentage = (totalVotes === 0) ? (0) : (voteCountsWeighted[i] * 100 / totalImportance);
+            const percentage = (totalImportance === 0) ? (0) : (voteCountsWeighted[i] * 100 / totalImportance);
             return {
                 text: poll.data.options[i],
                 votes: voteCounts[i],

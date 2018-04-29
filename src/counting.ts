@@ -14,6 +14,15 @@ interface IResults {
     }];
 }
 
+interface IVote {
+    address: string;
+    block: number;
+    validity: string;
+    multisig: boolean;
+    option: string;
+    importance: number;
+}
+
 /**
  * VOTING FUNCTIONS
  */
@@ -397,7 +406,12 @@ const toCsv = (o: object): string => {
     return resultString;
 };
 
-const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
+const toArray = (o: object): IVote[] => {
+    const keys = Object.keys(o);
+    return keys.map((k) => o[k]);
+};
+
+const getPOIVotes = async (poll: BroadcastedPoll): Promise<{[key: string]: IVote}> => {
     try {
         if (poll.data.formData.type !== PollConstants.POI_POLL) {
             throw new Error("Not a POI poll");
@@ -427,7 +441,7 @@ const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
             return transactions.filter((transaction) => transaction.isConfirmed());
         });
 
-        const votesObj: object = {};
+        const votesObj: {[key: string]: IVote} = {};
 
         // get individual information
         optionTransactions.forEach((transactions: Transaction[], i) => {
@@ -445,11 +459,12 @@ const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
                 }
                 const opt = poll.data.options[i];
                 votesObj[transaction.signer!.address.plain()] = {
-                    address: (address),
-                    block: (block),
-                    validity: (validity),
-                    multisig: (multisig),
+                    address,
+                    block,
+                    validity,
+                    multisig,
                     option: opt,
+                    importance: 0,
                 };
             });
         });
@@ -505,7 +520,7 @@ const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
         const allAddresses = voteAddresses.reduce(merge, []);
         // we don't need to do anything if there are no votes
         if (allAddresses.length === 0) {
-            return "";
+            return {};
         }
 
         // Since we deleted repeated votes in the same option, we can know all repetitions now mean they voted in more than one option
@@ -526,10 +541,23 @@ const getPOIResultsCsv = async (poll: BroadcastedPoll): Promise<string> => {
             votesObj[address.plain()].importance = importances[i];
         });
 
-        return toCsv(votesObj);
+        return votesObj;
     } catch (err) {
         throw err;
     }
 };
 
-export { IResults, getWhitelistResultsPromise, getWhitelistResults, getPOIResultsPromise, getPOIResults, getPOIResultsCsv };
+const getPOIResultsCsv = (poll: BroadcastedPoll): Observable<string> => {
+    return Observable.fromPromise(getPOIVotes(poll))
+        .map((votes: {[key: string]: IVote}) => toCsv(votes));
+};
+
+const getPOIResultsArray = (poll: BroadcastedPoll): Observable<IVote[]> => {
+    return Observable.fromPromise(getPOIVotes(poll))
+        .map((votes: {[key: string]: IVote}) => toArray(votes));
+};
+
+export {
+    IResults, IVote, getWhitelistResultsPromise, getWhitelistResults, getPOIResultsPromise,
+    getPOIResults, getPOIResultsCsv, getPOIResultsArray,
+};

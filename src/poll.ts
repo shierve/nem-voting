@@ -1,7 +1,7 @@
 import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, sendMessage } from "./utils";
 import { Address, NEMLibrary, NetworkTypes, Account, NemAnnounceResult, PublicAccount, Transaction } from "nem-library";
 import { PollConstants } from "./constants";
-import { IResults, getWhitelistResults, getPOIResults, getPOIResultsCsv } from "./counting";
+import { IResults, getWhitelistResults, getPOIResults, getPOIResultsCsv, IVote, getPOIResultsArray } from "./counting";
 import { Observable } from "rxjs";
 import { vote, multisigVote, getVotes } from "./voting";
 import { PollIndex } from "./poll-index";
@@ -264,14 +264,28 @@ class BroadcastedPoll extends Poll {
     /**
      * Gets the results for the poll as a csv string
      * @param pollAddress - The poll's NEM Address
-     * @return Observable<IResults>
+     * @return Observable<string>
      */
     public getCsvResults = (): Observable<string> => {
         const poll = this;
         if (poll.data.formData.type === PollConstants.POI_POLL) {
-            return Observable.fromPromise(getPOIResultsCsv(poll));
+            return getPOIResultsCsv(poll);
         } else {
             throw new Error("CSV results only available for POI polls");
+        }
+    }
+
+    /**
+     * Gets the results for the poll as an array of vote objects
+     * @param pollAddress - The poll's NEM Address
+     * @return Observable<IResults>
+     */
+    public getVoters = (): Observable<IVote[]> => {
+        const poll = this;
+        if (poll.data.formData.type === PollConstants.POI_POLL) {
+            return getPOIResultsArray(poll);
+        } else {
+            throw new Error("voters function only available for POI polls");
         }
     }
 

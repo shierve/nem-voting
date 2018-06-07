@@ -18,6 +18,12 @@ to install the npm module on your typescript or node project run:
 
 `npm install nem-voting --save`
 
+the module is made to work together with nem-library, so you should install that too:
+
+`npm install nem-library@1.0.5 --save`
+
+it is important that 1.0.5 is installed since it needs to be the same version than the one in nem-voting
+
 ## Examples <a name="examples"></a>
 
 The module exports two main classes: UnbroadcastedPoll and BroadcastedPoll. They represent polls that exist only locally and polls that exist in the blockchain, respectively.

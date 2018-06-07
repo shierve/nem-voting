@@ -56,6 +56,14 @@ interface IAddressLink {
  */
 abstract class Poll {
     public readonly data: IPollData;
+
+    /**
+     * @internal
+     * @param formData
+     * @param description
+     * @param options
+     * @param whitelist
+     */
     constructor(formData: IFormData, description: string, options: string[], whitelist?: Address[]) {
         this.data = {
             formData: (formData),
@@ -157,6 +165,9 @@ class BroadcastedPoll extends Poll {
      */
     private optionAddresses: IAddressLink;
 
+    /**
+     * @internal
+     */
     constructor(formData: IFormData, description: string, options: string[], pollAddress: Address, optionAddresses: IAddressLink, whitelist?: Address[]) {
         super(formData, description, options, whitelist);
         this.address = pollAddress;

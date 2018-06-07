@@ -34,6 +34,9 @@ class PollIndex {
      */
     public headers: IPollHeader[];
 
+    /**
+     * @internal
+     */
     constructor(address: Address, isPrivate: boolean, headers: IPollHeader[], creator?: Address) {
         this.address = address;
         this.isPrivate = isPrivate;

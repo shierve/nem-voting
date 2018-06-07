@@ -1,6 +1,6 @@
 {
   "name": "nem-voting",
-  "version": "1.1.20",
+  "version": "1.2.0",
   "description": "nem voting",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

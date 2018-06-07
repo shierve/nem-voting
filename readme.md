@@ -27,10 +27,11 @@ It also exports a PollConstants object with various usefull constants for voting
 ### Creating and Broadcasting a Poll to the blockchain
 
 ```typescript
-import { PollConstants, UnbroadcastedPoll, BroadcastedPoll } from "nem-voting";
+import { PollConstants, UnbroadcastedPoll, BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, NetworkTypes, Account } from "nem-library";
 
 NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Bootstrap the internal nem-library for voting
 const testPrivateKey = ""; // introduce the poll creator private key
 
 const formData = {
@@ -54,10 +55,11 @@ poll.broadcast(account)
 ### Fetching a Poll from the blockchain
 
 ```typescript
-import { BroadcastedPoll } from "nem-voting";
+import { BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, Address, NetworkTypes } from "nem-library";
 
 NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Bootstrap the internal nem-library for voting
 const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R");
 
 BroadcastedPoll.fromAddress(pollAddress)
@@ -69,10 +71,11 @@ BroadcastedPoll.fromAddress(pollAddress)
 ### Getting the results for a broadcasted poll
 
 ```typescript
-import { BroadcastedPoll } from "nem-voting";
+import { BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, Address, NetworkTypes } from "nem-library";
 
 NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Bootstrap the internal nem-library for voting
 const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R");
 
 BroadcastedPoll.fromAddress(pollAddress)
@@ -87,10 +90,11 @@ BroadcastedPoll.fromAddress(pollAddress)
 ### Voting on a poll
 
 ```typescript
-import { BroadcastedPoll } from "nem-voting";
+import { BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, Address, NetworkTypes, Account } from 'nem-library';
 
 NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Bootstrap the internal nem-library for voting
 const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R"); // Poll Address
 const testPrivateKey = ""; // Voter private key
 const account = Account.createWithPrivateKey(testPrivateKey);

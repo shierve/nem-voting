@@ -36,9 +36,9 @@ It also exports a PollConstants object with various usefull constants for voting
 import { PollConstants, UnbroadcastedPoll, BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, NetworkTypes, Account } from "nem-library";
 
-// This function will bootstrap both the internal nem-library for nem-trezor and the local one
-// if the local one has already been bootstrapped then you need to run NEMLibrary.reset() first
-NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+// This function will bootstrap both the internal nem-library for nem-voting and the local one
+// if the local version of nem-library and the one in nem-voting don't match then this will give problems
+NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
 const testPrivateKey = ""; // introduce the poll creator private key
 
 const formData = {
@@ -65,9 +65,9 @@ poll.broadcast(account)
 import { BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, Address, NetworkTypes } from "nem-library";
 
-// This function will bootstrap both the internal nem-library for nem-trezor and the local one
-// if the local one has already been bootstrapped then you need to run NEMLibrary.reset() first
-NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+// This function will bootstrap both the internal nem-library for nem-voting and the local one
+// if the local version of nem-library and the one in nem-voting don't match then this will give problems
+NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
 const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R");
 
 BroadcastedPoll.fromAddress(pollAddress)
@@ -82,9 +82,9 @@ BroadcastedPoll.fromAddress(pollAddress)
 import { BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, Address, NetworkTypes } from "nem-library";
 
-// This function will bootstrap both the internal nem-library for nem-trezor and the local one
-// if the local one has already been bootstrapped then you need to run NEMLibrary.reset() first
-NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+// This function will bootstrap both the internal nem-library for nem-voting and the local one
+// if the local version of nem-library and the one in nem-voting don't match then this will give problems
+NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
 const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R");
 
 BroadcastedPoll.fromAddress(pollAddress)
@@ -102,9 +102,9 @@ BroadcastedPoll.fromAddress(pollAddress)
 import { BroadcastedPoll, NEMVoting } from "nem-voting";
 import { NEMLibrary, Address, NetworkTypes, Account } from 'nem-library';
 
-// This function will bootstrap both the internal nem-library for nem-trezor and the local one
-// if the local one has already been bootstrapped then you need to run NEMLibrary.reset() first
-NEMVoting.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
+// This function will bootstrap both the internal nem-library for nem-voting and the local one
+// if the local version of nem-library and the one in nem-voting don't match then this will give problems
+NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
 const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R"); // Poll Address
 const testPrivateKey = ""; // Voter private key
 const account = Account.createWithPrivateKey(testPrivateKey);

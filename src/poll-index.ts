@@ -1,6 +1,6 @@
-import { Address, TransactionTypes, PlainMessage, Account } from "nem-library";
+import { Address, TransactionTypes, PlainMessage, Account, TransferTransaction } from "nem-library";
 import { Observable } from "rxjs";
-import { getFirstMessageWithString, getTransactionsWithString, generateRandomAddress, sendMessage } from "./utils";
+import { getFirstMessageWithString, getTransactionsWithString, generateRandomAddress, getMessageTransaction } from "./utils";
 
 /**
  * Represents the info from a poll header sent to an index
@@ -90,26 +90,24 @@ class PollIndex {
 
     /**
      * Creates a new poll Index
-     * @param account - the account that creates the index
      * @param isPrivate - will create a private index if true
+     * @param creatorAddress - needed only if the index is private
      * @return Observable<PollIndex>
      */
-    public static create = (account: Account, isPrivate: boolean): Observable<PollIndex> => {
+    public static create = (isPrivate: boolean, creatorAddress?: Address): {address: Address, transaction: TransferTransaction} => {
         const address = generateRandomAddress();
         const ownMessage = "createdPollIndex:" + address.plain();
         const obj: {[key: string]: any} = {
             private: isPrivate,
         };
         if (isPrivate) {
-            obj.creator = account.address;
+            obj.creator = creatorAddress;
         }
         const indexMessage = "pollIndex:" + JSON.stringify(obj);
-        return sendMessage(account, indexMessage, address)
-            .switchMap((announce) => {
-                return sendMessage(account, ownMessage, account.address);
-            }).map((announce) => {
-                return new PollIndex(address, isPrivate, []);
-            });
+        return {
+            address,
+            transaction: getMessageTransaction(indexMessage, address),
+        };
     }
 }
 

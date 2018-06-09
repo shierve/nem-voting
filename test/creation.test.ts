@@ -1,13 +1,17 @@
 import { expect } from "chai";
 import nock = require("nock");
 import { Poll, BroadcastedPoll, IFormData, UnbroadcastedPoll } from "../src/poll";
-import { NetworkTypes, NEMLibrary, Address, Account } from "nem-library";
+import { NetworkTypes, NEMLibrary, Address, Account, TransactionHttp, ServerConfig } from "nem-library";
 import { PollConstants } from "../src/constants";
 import { deriveOptionAddress } from "../src/utils";
+import { Observable } from "rxjs";
 
 describe("Poll Creation", () => {
   let address: Address;
   let poiPoll: UnbroadcastedPoll;
+  const nodes: ServerConfig[] = [
+    {protocol: "http", domain: "104.128.226.60", port: 7890},
+  ];
 
   beforeEach(() => {
     NEMLibrary.bootstrap(NetworkTypes.TEST_NET);
@@ -42,34 +46,30 @@ describe("Poll Creation", () => {
     const testPrivateKey =
       "c195d7699662b0e2dfae6a4aef87a082d1000000000000000000000000000000";
     const account = Account.createWithPrivateKey(testPrivateKey);
-    poiPoll.broadcast(account)
-      .subscribe((broadcastedPoll) => {
+    const broadcastData = poiPoll.broadcast(account.publicKey);
+    expect(broadcastData.broadcastedPoll).to.have.property("address");
+    expect(broadcastData.broadcastedPoll).to.have.property("optionAddresses");
+    expect(broadcastData.transactions.length).to.equal(4);
+    const transactionHttp = new TransactionHttp(nodes);
+    Observable.merge(...(broadcastData.transactions.map((t) => {
+      const signed = account.signTransaction(t);
+      return transactionHttp.announceTransaction(signed);
+    })))
+      .last()
+      .subscribe(() => {
         nk.done();
-        expect(broadcastedPoll).to.have.property("address");
-        expect(broadcastedPoll).to.have.property("optionAddresses");
         done();
       });
   });
 
   it("broadcasted polls should be valid", (done) => {
-    const nk = nock("http://104.128.226.60:7890")
-    .post("/transaction/announce", (body) => {
-        expect(body).to.have.property("data");
-        expect(body).to.have.property("signature");
-        return true;
-    })
-    .times(4)
-    .replyWithFile(200, __dirname + "/responses/announce_result.json");
     const testPrivateKey =
       "c195d7699662b0e2dfae6a4aef87a082d1000000000000000000000000000000";
     const account = Account.createWithPrivateKey(testPrivateKey);
-    poiPoll.broadcast(account)
-      .subscribe((broadcastedPoll) => {
-        nk.done();
-        expect(broadcastedPoll).to.have.property("address");
-        expect(broadcastedPoll).to.have.property("optionAddresses");
-        expect(broadcastedPoll.validate()).to.equal(true);
-        done();
-      });
+    const broadcastData = poiPoll.broadcast(account.publicKey);
+    expect(broadcastData.broadcastedPoll).to.have.property("address");
+    expect(broadcastData.broadcastedPoll).to.have.property("optionAddresses");
+    expect(broadcastData.broadcastedPoll.validate()).to.equal(true);
+    done();
   });
 });

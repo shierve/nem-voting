@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import nock = require("nock");
 import { Poll, BroadcastedPoll, IFormData } from "../src/poll";
-import { NetworkTypes, NEMLibrary, Address, Account, TransactionTypes, PublicAccount } from "nem-library";
+import { NetworkTypes, NEMLibrary, Address, Account, TransactionTypes, PublicAccount, ServerConfig, TransactionHttp } from "nem-library";
 import { PollConstants } from "../src/constants";
 import { deriveOptionAddress } from "../src/utils";
 
@@ -10,6 +10,9 @@ describe("Voting", () => {
   let poiPoll: BroadcastedPoll;
   let yesAddress: Address;
   let noAddress: Address;
+  const nodes: ServerConfig[] = [
+    {protocol: "http", domain: "104.128.226.60", port: 7890},
+  ];
 
   beforeEach(() => {
     NEMLibrary.bootstrap(NetworkTypes.TEST_NET);
@@ -52,7 +55,10 @@ describe("Voting", () => {
     const testPrivateKey =
       "c195d7699662b0e2dfae6a4aef87a082d1000000000000000000000000000000";
     const account = Account.createWithPrivateKey(testPrivateKey);
-    poiPoll.vote(account, "yes")
+    const voteTransaction = poiPoll.vote("yes");
+    const signed = account.signTransaction(voteTransaction);
+    const transactionHttp = new TransactionHttp(nodes);
+    transactionHttp.announceTransaction(signed)
       .subscribe((result) => {
         nk.done();
         expect(result.message).to.equal("SUCCESS");
@@ -95,7 +101,10 @@ describe("Voting", () => {
       "c195d7699662b0e2dfae6a4aef87a082d1000000000000000000000000000000";
     const account = Account.createWithPrivateKey(testPrivateKey);
     const multisigAccount = PublicAccount.createWithPublicKey("a0277cf57efb7fbd5b76d5f66b197ea4da2cb03f277d0ce65795ddf75000b679");
-    poiPoll.voteMultisig(account, multisigAccount, "yes")
+    const voteTransaction = poiPoll.voteMultisig(multisigAccount, "yes");
+    const signed = account.signTransaction(voteTransaction);
+    const transactionHttp = new TransactionHttp(nodes);
+    transactionHttp.announceTransaction(signed)
       .subscribe((result) => {
         nk.done();
         expect(result.message).to.equal("SUCCESS");

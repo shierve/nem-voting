@@ -215,20 +215,17 @@ const getImportances = (addresses: Address[], block?: number): Observable<number
     }
 };
 
-const sendMessage = (account: Account, message: string, address: Address): Observable<NemAnnounceResult> => {
-    initializeHttp();
+const getMessageTransaction = (message: string, address: Address): TransferTransaction => {
     const transferTransaction = TransferTransaction.create(
         TimeWindow.createWithDeadline(),
         address,
         new XEM(0),
         PlainMessage.create(message),
     );
-    const signedTransaction = account.signTransaction(transferTransaction);
-    return transactionHttp.announceTransaction(signedTransaction);
+    return transferTransaction;
 };
 
-const sendMultisigMessage = (account: Account, multisigAccount: PublicAccount, message: string, address: Address): Observable<NemAnnounceResult> => {
-    initializeHttp();
+const getMultisigMessage = (multisigAccount: PublicAccount, message: string, address: Address): MultisigTransaction => {
     const transferTransaction = TransferTransaction.create(
         TimeWindow.createWithDeadline(),
         address,
@@ -240,8 +237,7 @@ const sendMultisigMessage = (account: Account, multisigAccount: PublicAccount, m
         transferTransaction,
         multisigAccount,
     );
-    const signedTransaction = account.signTransaction(multisigTransaction);
-    return transactionHttp.announceTransaction(signedTransaction);
+    return multisigTransaction;
 };
 
 const publicKeyToAddress = (pubKey: string): Address => {
@@ -272,6 +268,6 @@ const generateRandomAddress = (): Address => {
 
 export {
     getImportances, getHeightByTimestamp, findTransaction, getHeightByTimestampPromise, getFirstMessageWithString,
-    getTransactionsWithString, getAllTransactions, getTransferTransaction, sendMessage, sendMultisigMessage,
+    getTransactionsWithString, getAllTransactions, getTransferTransaction, getMessageTransaction, getMultisigMessage,
     generatePollAddress, deriveOptionAddress, generateRandomAddress,
 };

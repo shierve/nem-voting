@@ -1,5 +1,5 @@
-import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, sendMessage } from "./utils";
-import { Address, NEMLibrary, NetworkTypes, Account, NemAnnounceResult, PublicAccount, Transaction } from "nem-library";
+import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, getMessageTransaction } from "./utils";
+import { Address, NEMLibrary, NetworkTypes, Account, NemAnnounceResult, PublicAccount, Transaction, TransferTransaction, MultisigTransaction } from "nem-library";
 import { PollConstants } from "./constants";
 import { IResults, getWhitelistResults, getPOIResults, getPOIResultsCsv, IVote, getPOIResultsArray } from "./counting";
 import { Observable } from "rxjs";
@@ -44,6 +44,17 @@ interface IPollData {
     whitelist?: Address[];
 }
 
+interface IBroadcastData {
+    /**
+     * Transactions that need to be sent and confirmed for the poll to be broadcasted
+     */
+    transactions: TransferTransaction[];
+    /**
+     * Broadcasted Poll object. Can not be used until the transactions have been broadcasted and confirmed
+     */
+    broadcastedPoll: BroadcastedPoll;
+}
+
 /**
  * Maps strings to  addresses, one for each poll option
  */
@@ -86,14 +97,15 @@ class UnbroadcastedPoll extends Poll {
 
     /**
      * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object (as a promise)
-     * @param account - NEM Account that will broadcast the poll
+     * @param creatorPublicKey - public key of the poll creator
      * @param pollIndex - optionally provide the poll index to send the poll to.
      *                    If not specified the default public index is used
-     * @return Promise<BroadcastedPoll>
+     * @return {pollAddress: Address, transactions: TransferTransaction[]} - returns the poll address
+     * and the transactions that need to be sent for it to be broadcasted
      */
-    private broadcastPromise = async (account: Account, pollIndex?: PollIndex): Promise<BroadcastedPoll> => {
+    public broadcast = (creatorPublicKey: string, pollIndex?: PollIndex): IBroadcastData => {
         try {
-            const pollAddress = generatePollAddress(this.data.formData.title, account.publicKey);
+            const pollAddress = generatePollAddress(this.data.formData.title, creatorPublicKey);
             const link: IAddressLink = {};
             const simplifiedLink: {[key: string]: string} = {};
             this.data.options.forEach((option) => {
@@ -106,16 +118,15 @@ class UnbroadcastedPoll extends Poll {
             const optionsObject = {strings: this.data.options, link: (simplifiedLink)};
             const optionsMessage = "options:" + JSON.stringify(optionsObject);
 
-            const formDataPromise = sendMessage(account, formDataMessage, pollAddress).first().toPromise();
-            const descriptionPromise = sendMessage(account, descriptionMessage, pollAddress).first().toPromise();
-            const optionsPromise = sendMessage(account, optionsMessage, pollAddress).first().toPromise();
-            const messagePromises = [formDataPromise, descriptionPromise, optionsPromise];
+            const formData = getMessageTransaction(formDataMessage, pollAddress);
+            const description = getMessageTransaction(descriptionMessage, pollAddress);
+            const options = getMessageTransaction(optionsMessage, pollAddress);
+            const messages = [formData, description, options];
             if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
                 const whitelistMessage = "whitelist:" + JSON.stringify(this.data.whitelist!.map((a) => a.plain()));
-                const whitelistPromise = sendMessage(account, whitelistMessage, pollAddress).first().toPromise();
-                messagePromises.push(whitelistPromise);
+                const whitelist = getMessageTransaction(whitelistMessage, pollAddress);
+                messages.push(whitelist);
             }
-            await Promise.all(messagePromises);
             const header: {[key: string]: any} = {
                 title: this.data.formData.title,
                 type: this.data.formData.type,
@@ -133,22 +144,14 @@ class UnbroadcastedPoll extends Poll {
                 pollIndexAddress = (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) ?
                     new Address(PollConstants.MAINNET_POLL_INDEX) : new Address(PollConstants.TESTNET_POLL_INDEX);
             }
-            await sendMessage(account, headerMessage, pollIndexAddress).first().toPromise();
-            return new BroadcastedPoll(this.data.formData, this.data.description, this.data.options, pollAddress, link, this.data.whitelist);
+            messages.push(getMessageTransaction(headerMessage, pollIndexAddress));
+            return {
+                transactions: messages,
+                broadcastedPoll: new BroadcastedPoll(this.data.formData, this.data.description, this.data.options, pollAddress, link, this.data.whitelist),
+            };
         } catch (err) {
             throw err;
         }
-    }
-
-    /**
-     * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object as an Observable
-     * @param account - NEM Account that will broadcast the poll
-     * @param pollIndex - optionally provide the poll index to send the poll to.
-     *                    If not specified the default public index is used
-     * @return Observable<BroadcastedPoll>
-     */
-    public broadcast = (account: Account, pollIndex?: PollIndex): Observable<BroadcastedPoll> => {
-        return Observable.fromPromise(this.broadcastPromise(account, pollIndex));
     }
 }
 
@@ -323,31 +326,29 @@ class BroadcastedPoll extends Poll {
 
     /**
      * Votes on the poll from a given account, returns the vote transaction result
-     * @param account - The voter account
      * @param option - The option to vote
-     * @return Observable<NemAnnounceResult>
+     * @return TransferTransaction - the transaction that needs to be sent to vote
      */
-    public vote = (account: Account, option: string): Observable<NemAnnounceResult> => {
+    public vote = (option: string): TransferTransaction => {
         const now = Date.now();
         if (this.data.formData.doe < now) {
             throw new Error("Poll Ended");
         }
-        return vote(account, this, option);
+        return vote(this, option);
     }
 
     /**
      * Votes on the poll from a multisig account, returns the vote transaction result
-     * @param account - The cosigner account that signs the multisig transaction
      * @param multisigAccount - The public account of the multisig account that votes
      * @param option - The option to vote
-     * @return Observable<NemAnnounceResult>
+     * @return MultisigTransaction - the transaction that needs to be sent to vote
      */
-    public voteMultisig = (account: Account, multisigAccount: PublicAccount, option: string): Observable<NemAnnounceResult> => {
+    public voteMultisig = (multisigAccount: PublicAccount, option: string): MultisigTransaction => {
         const now = Date.now();
         if (this.data.formData.doe < now) {
             throw new Error("Poll Ended");
         }
-        return multisigVote(account, multisigAccount, this, option);
+        return multisigVote(multisigAccount, this, option);
     }
 
     /**
@@ -361,4 +362,4 @@ class BroadcastedPoll extends Poll {
 
 }
 
-export {IPollData, IFormData, IAddressLink, Poll, BroadcastedPoll, UnbroadcastedPoll};
+export {IPollData, IFormData, IBroadcastData, IAddressLink, Poll, BroadcastedPoll, UnbroadcastedPoll};

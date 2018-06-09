@@ -33,16 +33,17 @@ It also exports a PollConstants object with various usefull constants for voting
 ### Creating and Broadcasting a Poll to the blockchain
 
 ```typescript
-import { PollConstants, UnbroadcastedPoll, BroadcastedPoll, NEMVoting } from "nem-voting";
-import { NEMLibrary, NetworkTypes, Account } from "nem-library";
+import { PollConstants, UnbroadcastedPoll, BroadcastedPoll } from "nem-voting";
+import { NEMLibrary, NetworkTypes, Account, TransactionHttp } from "nem-library";
+import { Observable } from "rxjs";
 
 // This function will bootstrap both the internal nem-library for nem-voting and the local one
 // if the local version of nem-library and the one in nem-voting don't match then this will give problems
 NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
-const testPrivateKey = ""; // introduce the poll creator private key
+const testPrivateKey = "c195d7699662b0e2dfae6a4aef87a082d11f74d2bd583f7dec5663a107823691"; // introduce the poll creator private key
 
 const formData = {
-    title: "test poll",
+    title: "test poll 2.0",
     doe: Date.now() + (60 * 1000 * 60), // Date of ending as timestamp in milliseconds
     type: PollConstants.POI_POLL, // type of vote counting
     multiple: false, // true if multiple votes are allowed
@@ -50,13 +51,24 @@ const formData = {
 const description = "This is the description for the poll";
 const options = ["option 1", "option 2"];
 
+// Create poll object
 const poll = new UnbroadcastedPoll(formData, description, options);
 const account = Account.createWithPrivateKey(testPrivateKey);
 
-poll.broadcast(account)
-    .subscribe((broadcastedPoll) => {
-        console.log(broadcastedPoll); // We get the broadcasted poll data, including the poll address and the option addresses
+// We get the broadcasted poll data, including the poll address and the option addresses
+const broadcastData = poll.broadcast(account.publicKey);
+// Now we sign and broadcast the transactions
+const transactionHttp = new TransactionHttp();
+Observable.merge(...(broadcastData.transactions.map((t) => {
+    const signed = account.signTransaction(t);
+    return transactionHttp.announceTransaction(signed);
+})))
+    .last()
+    .subscribe(() => {
+        // The poll is now broadcasted, but we need to wait for all the transactions to be confirmed
+        console.log(broadcastData.broadcastedPoll);
     });
+
 ```
 
 ### Fetching a Poll from the blockchain
@@ -99,14 +111,14 @@ BroadcastedPoll.fromAddress(pollAddress)
 ### Voting on a poll
 
 ```typescript
-import { BroadcastedPoll, NEMVoting } from "nem-voting";
-import { NEMLibrary, Address, NetworkTypes, Account } from 'nem-library';
+import { BroadcastedPoll } from "nem-voting";
+import { NEMLibrary, Address, NetworkTypes, Account, TransactionHttp } from 'nem-library';
 
 // This function will bootstrap both the internal nem-library for nem-voting and the local one
 // if the local version of nem-library and the one in nem-voting don't match then this will give problems
 NEMLibrary.bootstrap(NetworkTypes.TEST_NET); // Change to NetworkTypes.MAIN_NET for main net
-const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R"); // Poll Address
-const testPrivateKey = ""; // Voter private key
+const pollAddress = new Address("TBW2PIAVJPW7QRHWJ74PA4E36B6FNE7QWGOI3JAF"); // Poll Address
+const testPrivateKey = "c195d7699662b0e2dfae6a4aef87a082d11f74d2bd583f7dec5663a107823691"; // Voter private key
 const account = Account.createWithPrivateKey(testPrivateKey);
 
 BroadcastedPoll.fromAddress(pollAddress)
@@ -115,7 +127,10 @@ BroadcastedPoll.fromAddress(pollAddress)
         if (!poll.validate()) {
             throw new Error("Invalid Poll");
         }
-        return poll.vote(account, poll.data.options[0]); // vote
+        const voteTransaction = poll.vote(poll.data.options[0]); // get vote transaction
+        const signed = account.signTransaction(voteTransaction); // sign transaction
+        const transactionHttp = new TransactionHttp();
+        return transactionHttp.announceTransaction(signed); // broadcast transaction
     })
     .subscribe((announceResult) => {
         console.log(announceResult);
@@ -125,26 +140,6 @@ BroadcastedPoll.fromAddress(pollAddress)
 ## Definitions <a name="definitions"></a>
 
 ### UnbroadcastedPoll
-
-```typescript
-/**
- * An unbroadcasted poll. Exists only locally and not on the blockchain yet
- */
-class UnbroadcastedPoll extends Poll {
-    constructor(formData: IFormData, description: string, options: string[], whitelist?: Address[]);
-
-    /**
-     * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object as an Observable
-     * @param account - NEM Account that will broadcast the poll
-     * @param pollIndex - optionally provide the poll index to send the poll to.
-     *                    If not specified the default public index is used
-     * @return Observable<BroadcastedPoll>
-     */
-    public broadcast = (account: Account, pollIndex?: PollIndex): Observable<BroadcastedPoll>;
-}
-```
-
-### BroadcastedPoll
 
 ```typescript
 interface IFormData {
@@ -165,7 +160,6 @@ interface IFormData {
      */
     type: number;
 }
-
 interface IPollData {
     /**
      * General information abount the poll
@@ -184,88 +178,114 @@ interface IPollData {
      */
     whitelist?: Address[];
 }
-
-/**
- * Maps strings to  addresses, one for each poll option
- */
-interface IAddressLink {
-    [key: string]: Address;
+interface IBroadcastData {
+    /**
+     * Transactions that need to be sent and confirmed for the poll to be broadcasted
+     */
+    transactions: TransferTransaction[];
+    /**
+     * Broadcasted Poll object. Can not be used until the transactions have been broadcasted and confirmed
+     */
+    broadcastedPoll: BroadcastedPoll;
 }
-
 /**
- * A broadcasted poll. Exists in the blockchain
+ * Abstract class that represents a poll
  */
-class BroadcastedPoll extends Poll {
-    public readonly data: IPollData;
+declare abstract class Poll {
+    readonly data: IPollData;
+}
+/**
+ * An unbroadcasted poll. Exists only locally and not on the blockchain yet
+ */
+declare class UnbroadcastedPoll extends Poll {
+    constructor(formData: IFormData, description: string, options: string[], whitelist?: Address[]);
+    /**
+     * Broadcasts an unbroadcasted poll and returns the resulting broadcasted poll object (as a promise)
+     * @param creatorPublicKey - public key of the poll creator
+     * @param pollIndex - optionally provide the poll index to send the poll to.
+     *                    If not specified the default public index is used
+     * @return {pollAddress: Address, transactions: TransferTransaction[]} - returns the poll address
+     * and the transactions that need to be sent for it to be broadcasted
+     */
+    broadcast: (creatorPublicKey: string, pollIndex?: PollIndex | undefined) => IBroadcastData;
+}
+```
+
+### BroadcastedPoll
+
+```typescript
+/**
+ * A broadcasted poll. Represents a Poll that exists in the blockchain.
+ */
+declare class BroadcastedPoll extends Poll {
     /**
      * The poll address
      */
-    public readonly address: Address;
+    readonly address: Address;
     /**
      * Map from option to option address
      */
-    private optionAddresses: IAddressLink;
-
-    constructor(formData: IFormData, description: string, options: string[], pollAddress: Address, optionAddresses: IAddressLink, whitelist?: Address[]);
-
-
+    private optionAddresses;
+    /**
+     * Fetches a Broadcasted Poll from the blockchain by its address
+     * @param pollAddress - The poll's NEM Address
+     * @return Promise<BroadcastedPoll>
+     */
+    private static fromAddressPromise;
     /**
      * Fetches a Broadcasted Poll from the blockchain by its address
      * @param pollAddress - The poll's NEM Address
      * @return Observable<BroadcastedPoll>
      */
-    public static fromAddress = (pollAddress: Address): Observable<BroadcastedPoll>;
-
+    static fromAddress: (pollAddress: Address) => Observable<BroadcastedPoll>;
     /**
      * Gets the option address for a given option
      * @param option - The option
      * @return Address | null
      */
-    public getOptionAddress = (option: string): Address | null;
-
+    getOptionAddress: (option: string) => Address | null;
     /**
      * Gets the results for the poll
      * @param pollAddress - The poll's NEM Address
      * @return Observable<IResults>
      */
-    public getResults = (): Observable<IResults>;
-
+    getResults: () => Observable<IResults>;
     /**
      * Gets the results for the poll as a csv string
      * @param pollAddress - The poll's NEM Address
+     * @return Observable<string>
+     */
+    getCsvResults: () => Observable<string>;
+    /**
+     * Gets the results for the poll as an array of vote objects
+     * @param pollAddress - The poll's NEM Address
      * @return Observable<IResults>
      */
-    public getCsvResults = (): Observable<string>;
-
+    getVoters: () => Observable<IVote[]>;
     /**
      * validates a poll's structure and returns wether it is correct or not
      * @return boolean
      */
-    public validate = (): boolean;
-
+    validate: () => boolean;
     /**
      * Votes on the poll from a given account, returns the vote transaction result
-     * @param account - The voter account
      * @param option - The option to vote
-     * @return Observable<NemAnnounceResult>
+     * @return TransferTransaction - the transaction that needs to be sent to vote
      */
-    public vote = (account: Account, option: string): Observable<NemAnnounceResult>;
-
+    vote: (option: string) => TransferTransaction;
     /**
      * Votes on the poll from a multisig account, returns the vote transaction result
-     * @param account - The cosigner account that signs the multisig transaction
      * @param multisigAccount - The public account of the multisig account that votes
      * @param option - The option to vote
-     * @return Observable<NemAnnounceResult>
+     * @return MultisigTransaction - the transaction that needs to be sent to vote
      */
-    public voteMultisig = (account: Account, multisigAccount: PublicAccount, option: string): Observable<NemAnnounceResult>;
-
+    voteMultisig: (multisigAccount: PublicAccount, option: string) => MultisigTransaction;
     /**
      * Gets the votes that an address has sent to the poll, if it has not voted returns null
      * @param address - The address of the voter
      * @return Observable<Transaction[] | null>
      */
-    public getVotes = (address: Address): Observable<Transaction[] | null>;
+    getVotes: (address: Address) => Observable<Transaction[] | null>;
 }
 ```
 
@@ -300,50 +320,49 @@ interface IPollHeader {
     address: Address;
     whitelist?: Address[];
 }
-
 /**
  * Contains the info for a poll index, public or private
  */
-class PollIndex {
+declare class PollIndex {
     /**
      * Poll Index Address
      */
-    public address: Address;
+    address: Address;
     /**
      * true if the index is private. On private indexes only the creator can send valid polls
      */
-    public isPrivate: boolean;
+    isPrivate: boolean;
     /**
      * the creator of the poll, only needed for private indexes
      */
-    public creator?: Address;
+    creator?: Address;
     /**
      * array of broadcasted header polls for the index
      */
-    public headers: IPollHeader[];
-
+    headers: IPollHeader[];
     /**
      * Gets a poll index from its address with all of its broadcasted polls
      * @param address - the index account address
      * @return Observable<PollIndex>
      */
-    public static fromAddress = (address: Address): Observable<PollIndex>;
-
+    static fromAddress: (address: Address) => Observable<PollIndex>;
     /**
      * Creates a new poll Index
-     * @param account - the account that creates the index
      * @param isPrivate - will create a private index if true
+     * @param creatorAddress - needed only if the index is private
      * @return Observable<PollIndex>
      */
-    public static create = (account: Account, isPrivate: boolean): Observable<PollIndex>;
+    static create: (isPrivate: boolean, creatorAddress?: Address | undefined) => {
+        address: Address;
+        transaction: TransferTransaction;
+    };
 }
-
 /**
  * Gets the addresses for all the poll indexes created by an address
  * @param creator - the address of the creator of the indexes we want
  * @return Observable<Address[]>
  */
-const getCreatedIndexAddresses = (creator: Address): Observable<Address[]>;
+declare const getCreatedIndexAddresses: (creator: Address) => Observable<Address[]>;
 ```
 
 ## Technical specification <a name="specification"></a>

@@ -156,7 +156,7 @@ class UnbroadcastedPoll extends Poll {
 }
 
 /**
- * A broadcasted poll. Exists in the blockchain
+ * A broadcasted poll. Represents a Poll that exists in the blockchain.
  */
 class BroadcastedPoll extends Poll {
     /**

@@ -1,4 +1,4 @@
-import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, getMessageTransaction } from "./utils";
+import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, getMessageTransaction, getAllMessagesWithString, getFirstSender, getHeightByTimestamp } from "./utils";
 import { Address, NEMLibrary, NetworkTypes, Account, NemAnnounceResult, PublicAccount, Transaction, TransferTransaction, MultisigTransaction } from "nem-library";
 import { PollConstants } from "./constants";
 import { IResults, getWhitelistResults, getPOIResults, getPOIResultsCsv, IVote, getPOIResultsArray } from "./counting";
@@ -123,9 +123,16 @@ class UnbroadcastedPoll extends Poll {
             const options = getMessageTransaction(optionsMessage, pollAddress);
             const messages = [formData, description, options];
             if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
-                const whitelistMessage = "whitelist:" + JSON.stringify(this.data.whitelist!.map((a) => a.plain()));
-                const whitelist = getMessageTransaction(whitelistMessage, pollAddress);
-                messages.push(whitelist);
+                const splitAddresses: string[][] = [];
+                const addresses = this.data.whitelist!.map((a) => a.plain());
+                while (addresses.length > 0) {
+                    splitAddresses.push(addresses.splice(0, 24)); // 24 is the maximum amount of addresses that fit in a single transaction
+                }
+                const whitelistMessages = splitAddresses.map((partialWhitelist) => {
+                    const whitelistMessage = "whitelist:" + JSON.stringify(partialWhitelist);
+                    return getMessageTransaction(whitelistMessage, pollAddress);
+                });
+                messages.concat(whitelistMessages);
             }
             const header: {[key: string]: any} = {
                 title: this.data.formData.title,
@@ -164,6 +171,10 @@ class BroadcastedPoll extends Poll {
      */
     public readonly address: Address;
     /**
+     * The block the poll ended on. It is undefined until fetched.
+     */
+    public endBlock?: number;
+    /**
      * Map from option to option address
      */
     private optionAddresses: IAddressLink;
@@ -171,10 +182,11 @@ class BroadcastedPoll extends Poll {
     /**
      * @internal
      */
-    constructor(formData: IFormData, description: string, options: string[], pollAddress: Address, optionAddresses: IAddressLink, whitelist?: Address[]) {
+    constructor(formData: IFormData, description: string, options: string[], pollAddress: Address, optionAddresses: IAddressLink, whitelist?: Address[], endBlock?: number) {
         super(formData, description, options, whitelist);
         this.address = pollAddress;
         this.optionAddresses = optionAddresses;
+        this.endBlock = endBlock;
     }
 
     /**
@@ -222,12 +234,23 @@ class BroadcastedPoll extends Poll {
             }
 
             if (formData.type === PollConstants.WHITELIST_POLL) {
-                const whitelistString = await getFirstMessageWithString("whitelist:", pollAddress).first().toPromise();
-                if (whitelistString === null) {
+                let endBlock: number | undefined;
+                // TODO: multi-message whitelist
+                const creator = await getFirstSender(pollAddress).first().toPromise();
+                const end = (formData.doe < Date.now()) ? (formData.doe) : (undefined);
+                if (end !== undefined) {
+                    endBlock = await getHeightByTimestamp(end).first().toPromise();
+                }
+                const whitelistStrings = await getAllMessagesWithString("whitelist:", pollAddress, creator!, endBlock).first().toPromise();
+                if (whitelistStrings === null) {
                     throw new Error("Error fetching poll");
                 }
-                const whitelist = (JSON.parse(whitelistString!.replace("whitelist:", ""))).map((a: string) => new Address(a));
-                return new BroadcastedPoll(formData, description, options.strings, pollAddress, addressLink, whitelist);
+                const whitelist = whitelistStrings.reduce((addresses, whitelistString) => {
+                    return addresses.concat(JSON.parse(whitelistString.replace("whitelist:", "")).map((a) => {
+                        return new Address(a);
+                    }));
+                }, []);
+                return new BroadcastedPoll(formData, description, options.strings, pollAddress, addressLink, whitelist, endBlock);
             } else {
                 return new BroadcastedPoll(formData, description, options.strings, pollAddress, addressLink);
             }
@@ -257,6 +280,15 @@ class BroadcastedPoll extends Poll {
         } else {
             return address;
         }
+    }
+
+    /**
+     * Sets the end block when the poll ends
+     * @param block - The end block
+     * @return void
+     */
+    public setEndBlock = (block: number): void => {
+        this.endBlock = block;
     }
 
     /**

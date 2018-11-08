@@ -109,6 +109,34 @@ const getFirstMessageWithString =
         });
 };
 
+// Gets the address of the first person that sent a transaction to this address
+const getFirstSender = (receiver: Address): Observable<Address | null> => {
+    return getTransactionsWithString("", receiver)
+        .map((transactions) => {
+            if (transactions.length === 0 || !transactions[0].signer) {
+                return null;
+            }
+            return transactions[0].signer.address;
+        });
+};
+
+const getAllMessagesWithString =
+(queryString: string, receiver: Address, sender?: Address, block?: number): Observable<string[] | null> => {
+    return getTransactionsWithString(queryString, receiver, sender = sender)
+        .map((transactions) => {
+            if (transactions.length === 0) {
+                return null;
+            }
+            // filter only transactions sent before block
+            if (block !== undefined) {
+                const validTransactions = transactions.filter((t) => t.getTransactionInfo().height < block);
+                return validTransactions.map((transaction) => (transaction.message as PlainMessage).plain());
+            } else {
+                return transactions.map((transaction) => (transaction.message as PlainMessage).plain());
+            }
+        });
+};
+
 const NEM_EPOCH = Date.UTC(2015, 2, 29, 0, 6, 25, 0);
 
 /**
@@ -146,7 +174,7 @@ const getLastBlock = (): Promise<Block> => {
  */
 const getHeightByTimestampPromise = async (timestamp: number): Promise<number> => {
     try {
-        // 1.Approximate (60s average block time)
+        // Approximate (60s average block time)
         const nemTimestamp = toNEMTimeStamp(timestamp);
         const now = toNEMTimeStamp((new Date()).getTime());
         const curHeight = await getBlockchainHeight();
@@ -269,5 +297,5 @@ const generateRandomAddress = (): Address => {
 export {
     getImportances, getHeightByTimestamp, findTransaction, getHeightByTimestampPromise, getFirstMessageWithString,
     getTransactionsWithString, getAllTransactions, getTransferTransaction, getMessageTransaction, getMultisigMessage,
-    generatePollAddress, deriveOptionAddress, generateRandomAddress,
+    generatePollAddress, deriveOptionAddress, generateRandomAddress, getAllMessagesWithString, getFirstSender,
 };

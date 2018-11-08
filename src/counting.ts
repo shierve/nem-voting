@@ -45,10 +45,13 @@ const getWhitelistResultsPromise = async (poll: BroadcastedPoll): Promise<IResul
     let blockPromise;
     if (end !== null) {
         blockPromise = getHeightByTimestamp(end).first().toPromise();
+    } else if (poll.endBlock !== undefined) {
+        blockPromise = Promise.resolve(poll.endBlock);
     } else {
         blockPromise = Promise.resolve(-1);
     }
     const endBlock = await blockPromise;
+    poll.setEndBlock(endBlock);
     // get all Transactions that can potentially be votes
     const orderedAddresses = poll.data.options.map((option) => poll.getOptionAddress(option));
     const optionTransactionPromises = orderedAddresses.map((address) => {
@@ -218,10 +221,13 @@ const getPOIResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> =>
         let blockPromise;
         if (end !== null) {
             blockPromise = getHeightByTimestamp(end).first().toPromise();
+        } else if (poll.endBlock !== undefined) {
+            blockPromise = Promise.resolve(poll.endBlock);
         } else {
             blockPromise = Promise.resolve(-1);
         }
         const endBlock = await blockPromise;
+        poll.setEndBlock(endBlock);
         // get all Transactions that can potentially be votes
         const orderedAddresses = poll.data.options.map((option) => poll.getOptionAddress(option));
         const optionTransactionPromises = orderedAddresses.map((address) => {
@@ -420,12 +426,15 @@ const getPOIVotes = async (poll: BroadcastedPoll): Promise<{[key: string]: IVote
         const end = (poll.data.formData.doe < Date.now()) ? (poll.data.formData.doe) : -1;
 
         let blockPromise;
-        if (end !== -1) {
+        if (end !== null) {
             blockPromise = getHeightByTimestamp(end).first().toPromise();
+        } else if (poll.endBlock !== undefined) {
+            blockPromise = Promise.resolve(poll.endBlock);
         } else {
             blockPromise = Promise.resolve(-1);
         }
         const endBlock = await blockPromise;
+        poll.setEndBlock(endBlock);
 
         // get all Transactions that can potentially be votes
         const orderedAddresses = poll.data.options.map((option) => poll.getOptionAddress(option));

@@ -140,9 +140,9 @@ class UnbroadcastedPoll extends Poll {
                 doe: this.data.formData.doe,
                 address: pollAddress.plain(),
             };
-            if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
-                header.whitelist = this.data.whitelist!.map((a) => a.plain());
-            }
+            // if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
+            //     header.whitelist = this.data.whitelist!.map((a) => a.plain());
+            // }
             const headerMessage = "poll:" + JSON.stringify(header);
             let pollIndexAddress: Address;
             if (pollIndex) {

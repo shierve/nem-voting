@@ -6,12 +6,12 @@ import { Observable } from "rxjs";
 
 interface IResults {
     totalVotes: number;
-    options: [{
+    options: Array<{
         text: string;
         votes: number;
         weighted: number;
         percentage: number;
-    }];
+    }>;
 }
 
 interface IVote {

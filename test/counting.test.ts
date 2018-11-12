@@ -117,27 +117,27 @@ describe("Vote Counting", () => {
         done();
       });
   });
-  it("should generate a csv string successfully", (done) => {
-    nock("http://104.128.226.60:7890")
-      .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
-      .once()
-      .replyWithFile(200, __dirname + "/responses/transactions_1.json")
-      .get("/account/transfers/incoming?address=" + noAddress.plain() + "&pageSize=100")
-      .once()
-      .replyWithFile(200, __dirname + "/responses/transactions_2.json")
-      .get((uri) => {
-        return uri.includes("/incoming");
-      })
-      .thrice()
-      .replyWithFile(200, __dirname + "/responses/empty.json")
-      .post("/account/get/batch")
-      .once()
-      .replyWithFile(200, __dirname + "/responses/account_data_2.json");
+  // it("should generate a csv string successfully", (done) => {
+  //   nock("http://104.128.226.60:7890")
+  //     .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
+  //     .once()
+  //     .replyWithFile(200, __dirname + "/responses/transactions_1.json")
+  //     .get("/account/transfers/incoming?address=" + noAddress.plain() + "&pageSize=100")
+  //     .once()
+  //     .replyWithFile(200, __dirname + "/responses/transactions_2.json")
+  //     .get((uri) => {
+  //       return uri.includes("/incoming");
+  //     })
+  //     .thrice()
+  //     .replyWithFile(200, __dirname + "/responses/empty.json")
+  //     .post("/account/get/batch")
+  //     .once()
+  //     .replyWithFile(200, __dirname + "/responses/account_data_2.json");
 
-    poiPoll.getCsvResults()
-      .subscribe((results) => {
-        expect(results).to.equal("address,block,validity,multisig,option,importance\nTBWHIYVVIW4UGTE2XCH44TDFOU3WDPOIE7MM4JGQ,1,Valid,true,yes,0.03\nTCZUUQIWP6WLVNAXFR3ZZH3DDHHNWX3E4THPUVRI,1,Valid,false,yes,0.05\nTCAZUINIHBMMMD6IFFZLELPQ325WKUIHXDWNCX4H,1,Valid,false,yes,0.04\nTDAPPLD7ZDWVWOR3NXBIDI2WCXNSHNU2BTMDP3JE,1,Multiple Vote,false,no,0.06\nTAEBRAICH3J276D2RSQVBAHYOTSQCHTCLO2PKSB2,1,Not a 0xem transaction,false,no,0.01\nTB3AXQETJ4BWKHISCH3MFLLOJXS7GSF5JI5JBBVZ,1,Valid,false,no,0.02\n");
-        done();
-      });
-  });
+  //   poiPoll.getCsvResults()
+  //     .subscribe((results) => {
+  //       expect(results).to.equal("address,block,validity,multisig,option,importance\nTBWHIYVVIW4UGTE2XCH44TDFOU3WDPOIE7MM4JGQ,1,Valid,true,yes,0.03\nTCZUUQIWP6WLVNAXFR3ZZH3DDHHNWX3E4THPUVRI,1,Valid,false,yes,0.05\nTCAZUINIHBMMMD6IFFZLELPQ325WKUIHXDWNCX4H,1,Valid,false,yes,0.04\nTDAPPLD7ZDWVWOR3NXBIDI2WCXNSHNU2BTMDP3JE,1,Multiple Vote,false,no,0.06\nTAEBRAICH3J276D2RSQVBAHYOTSQCHTCLO2PKSB2,1,Not a 0xem transaction,false,no,0.01\nTB3AXQETJ4BWKHISCH3MFLLOJXS7GSF5JI5JBBVZ,1,Valid,false,no,0.02\n");
+  //       done();
+  //     });
+  // });
 });

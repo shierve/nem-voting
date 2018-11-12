@@ -148,7 +148,11 @@ const NEM_EPOCH = Date.UTC(2015, 2, 29, 0, 6, 25, 0);
  * @return {number} - The NEM transaction time stamp in milliseconds
  */
 const toNEMTimeStamp = (date: number) => {
-    return Math.floor((date / 1000) - (NEM_EPOCH / 1000));
+    console.log("given", date);
+    console.log("epoch", NEM_EPOCH.valueOf());
+    const ts = Math.floor((date / 1000) - (NEM_EPOCH.valueOf() / 1000));
+    console.log("new", ts);
+    return ts;
 };
 
 const getBlockchainHeight = (): Promise<number> => {
@@ -177,16 +181,16 @@ const getHeightByTimestampPromise = async (timestamp: number): Promise<number> =
     try {
         // Approximate (60s average block time)
         const nemTimestamp = toNEMTimeStamp(timestamp);
-        const now = toNEMTimeStamp((new Date()).getTime());
+        const now = toNEMTimeStamp(Date.now());
+        // const curHeight = await getBlockchainHeight();
         const curHeight = await getBlockchainHeight();
-        const elapsed = now - nemTimestamp;
         // memoization
         const memo: {[key: number]: Block} = [];
         let foundHeight: number | null = null;
         let lastTimestamp = now;
         let lastHeight = curHeight;
-        let lb = 1;
-        let ub = curHeight;
+        let lb = 1; // lower bound
+        let ub = curHeight; // upper bound
         // estimation
         while (foundHeight === null) {
             if (lb === ub) {

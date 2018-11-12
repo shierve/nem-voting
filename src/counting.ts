@@ -43,10 +43,10 @@ const getWhitelistResultsPromise = async (poll: BroadcastedPoll): Promise<IResul
     let end = (poll.data.formData.doe < Date.now()) ? (poll.data.formData.doe) : (null);
 
     let blockPromise;
-    if (end !== null) {
-        blockPromise = getHeightByTimestamp(end).first().toPromise();
-    } else if (poll.endBlock !== undefined) {
+    if (poll.endBlock !== undefined) {
         blockPromise = Promise.resolve(poll.endBlock);
+    } else if (end !== null) {
+        blockPromise = getHeightByTimestamp(end).first().toPromise();
     } else {
         blockPromise = Promise.resolve(-1);
     }
@@ -219,10 +219,10 @@ const getPOIResultsPromise = async (poll: BroadcastedPoll): Promise<IResults> =>
         let end = (poll.data.formData.doe < Date.now()) ? (poll.data.formData.doe) : (null);
 
         let blockPromise;
-        if (end !== null) {
-            blockPromise = getHeightByTimestamp(end).first().toPromise();
-        } else if (poll.endBlock !== undefined) {
+        if (poll.endBlock !== undefined) {
             blockPromise = Promise.resolve(poll.endBlock);
+        } else if (end !== null) {
+            blockPromise = getHeightByTimestamp(end).first().toPromise();
         } else {
             blockPromise = Promise.resolve(-1);
         }
@@ -423,13 +423,13 @@ const getPOIVotes = async (poll: BroadcastedPoll): Promise<{[key: string]: IVote
             throw new Error("Not a POI poll");
         }
 
-        const end = (poll.data.formData.doe < Date.now()) ? (poll.data.formData.doe) : -1;
+        const end = (poll.data.formData.doe < Date.now()) ? (poll.data.formData.doe) : (null);
 
         let blockPromise;
-        if (end !== null) {
-            blockPromise = getHeightByTimestamp(end).first().toPromise();
-        } else if (poll.endBlock !== undefined) {
+        if (poll.endBlock !== undefined) {
             blockPromise = Promise.resolve(poll.endBlock);
+        } else if (end !== null) {
+            blockPromise = getHeightByTimestamp(end).first().toPromise();
         } else {
             blockPromise = Promise.resolve(-1);
         }

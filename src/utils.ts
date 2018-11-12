@@ -148,10 +148,7 @@ const NEM_EPOCH = Date.UTC(2015, 2, 29, 0, 6, 25, 0);
  * @return {number} - The NEM transaction time stamp in milliseconds
  */
 const toNEMTimeStamp = (date: number) => {
-    console.log("given", date);
-    console.log("epoch", NEM_EPOCH.valueOf());
     const ts = Math.floor((date / 1000) - (NEM_EPOCH.valueOf() / 1000));
-    console.log("new", ts);
     return ts;
 };
 

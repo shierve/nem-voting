@@ -296,8 +296,13 @@ const generateRandomAddress = (): Address => {
     return publicKeyToAddress(pk);
 };
 
+const generateRandomPubKey = (): string => {
+    return ((CryptoJS.lib.WordArray as any).random(32) as CryptoJS.WordArray).toString();
+};
+
 export {
     getImportances, getHeightByTimestamp, findTransaction, getHeightByTimestampPromise, getFirstMessageWithString,
     getTransactionsWithString, getAllTransactions, getTransferTransaction, getMessageTransaction, getMultisigMessage,
     generatePollAddress, deriveOptionAddress, generateRandomAddress, getAllMessagesWithString, getFirstSender,
+    generateRandomPubKey,
 };

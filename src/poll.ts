@@ -1,4 +1,4 @@
-import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, getMessageTransaction, getAllMessagesWithString, getFirstSender, getHeightByTimestamp } from "./utils";
+import { getFirstMessageWithString, generatePollAddress, deriveOptionAddress, getMessageTransaction, getAllMessagesWithString, getFirstSender, getHeightByTimestamp, generateRandomPubKey, generateRandomAddress } from "./utils";
 import { Address, NEMLibrary, NetworkTypes, Account, NemAnnounceResult, PublicAccount, Transaction, TransferTransaction, MultisigTransaction } from "nem-library";
 import { PollConstants } from "./constants";
 import { IResults, getWhitelistResults, getPOIResults, getPOIResultsCsv, IVote, getPOIResultsArray } from "./counting";
@@ -161,8 +161,11 @@ class UnbroadcastedPoll extends Poll {
         }
     }
 
-    public getBroadcastFee = (creatorPublicKey: string, pollIndex?: PollIndex) => {
-        const broadcastData = this.broadcast(creatorPublicKey, pollIndex);
+    public getBroadcastFee = () => {
+        const pubKey = generateRandomPubKey();
+        const addr = generateRandomAddress();
+        const pollIndex = new PollIndex(addr, false, []);
+        const broadcastData = this.broadcast(pubKey, pollIndex);
         const total = broadcastData.transactions.reduce((acc, t) => {
             return acc + t.fee;
         }, 0);

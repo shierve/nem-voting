@@ -257,7 +257,7 @@ const getMessageTransaction = (message: string, address: Address): TransferTrans
 
 const getMultisigMessage = (multisigAccount: PublicAccount, message: string, address: Address): MultisigTransaction => {
     const transferTransaction = TransferTransaction.create(
-        TimeWindow.createWithDeadline(),
+        TimeWindow.createWithDeadline(1),
         address,
         new XEM(0),
         PlainMessage.create(message),

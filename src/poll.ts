@@ -126,7 +126,7 @@ class UnbroadcastedPoll extends Poll {
                 const splitAddresses: string[][] = [];
                 const addresses = this.data.whitelist!.map((a) => a.plain());
                 while (addresses.length > 0) {
-                    splitAddresses.push(addresses.splice(0, 24)); // 24 is the maximum amount of addresses that fit in a single transaction
+                    splitAddresses.push(addresses.splice(0, 23)); // 24 is the maximum amount of addresses that fit in a single transaction
                 }
                 const whitelistMessages = splitAddresses.map((partialWhitelist) => {
                     const whitelistMessage = "whitelist:" + JSON.stringify(partialWhitelist);

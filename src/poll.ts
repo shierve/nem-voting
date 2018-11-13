@@ -160,6 +160,14 @@ class UnbroadcastedPoll extends Poll {
             throw err;
         }
     }
+
+    public getBroadcastFee = (creatorPublicKey: string, pollIndex?: PollIndex) => {
+        const broadcastData = this.broadcast(creatorPublicKey, pollIndex);
+        const total = broadcastData.transactions.reduce((acc, t) => {
+            return acc + t.fee;
+        }, 0);
+        return total;
+    }
 }
 
 /**

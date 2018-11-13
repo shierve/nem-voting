@@ -89,7 +89,7 @@ const getTransactionsWithString =
                 });
             // filter by sender
             if (sender !== undefined) {
-                transactions = transactions.filter((t) => (t.signer !== undefined && t.signer.address === sender));
+                transactions = transactions.filter((t) => (t.signer !== undefined && t.signer.address.plain() === sender.plain()));
             }
             // Then we get the messages, we only want the plain messages, not encrypted
             return transactions

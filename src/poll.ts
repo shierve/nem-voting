@@ -121,7 +121,7 @@ class UnbroadcastedPoll extends Poll {
             const formData = getMessageTransaction(formDataMessage, pollAddress);
             const description = getMessageTransaction(descriptionMessage, pollAddress);
             const options = getMessageTransaction(optionsMessage, pollAddress);
-            const messages = [formData, description, options];
+            let messages = [formData, description, options];
             if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
                 const splitAddresses: string[][] = [];
                 const addresses = this.data.whitelist!.map((a) => a.plain());
@@ -132,7 +132,7 @@ class UnbroadcastedPoll extends Poll {
                     const whitelistMessage = "whitelist:" + JSON.stringify(partialWhitelist);
                     return getMessageTransaction(whitelistMessage, pollAddress);
                 });
-                messages.concat(whitelistMessages);
+                messages = messages.concat(whitelistMessages);
             }
             const header: {[key: string]: any} = {
                 title: this.data.formData.title,
@@ -235,7 +235,6 @@ class BroadcastedPoll extends Poll {
 
             if (formData.type === PollConstants.WHITELIST_POLL) {
                 let endBlock: number | undefined;
-                // TODO: multi-message whitelist
                 const creator = await getFirstSender(pollAddress).first().toPromise();
                 const end = (formData.doe < Date.now()) ? (formData.doe) : (undefined);
                 if (end !== undefined) {
@@ -243,6 +242,7 @@ class BroadcastedPoll extends Poll {
                 }
                 const whitelistStrings = await getAllMessagesWithString("whitelist:", pollAddress, creator!, endBlock).first().toPromise();
                 if (whitelistStrings === null) {
+                    console.log("hello");
                     throw new Error("Error fetching poll");
                 }
                 const whitelist = whitelistStrings.reduce((addresses, whitelistString) => {

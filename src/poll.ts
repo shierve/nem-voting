@@ -242,7 +242,6 @@ class BroadcastedPoll extends Poll {
                 }
                 const whitelistStrings = await getAllMessagesWithString("whitelist:", pollAddress, creator!, endBlock).first().toPromise();
                 if (whitelistStrings === null) {
-                    console.log("hello");
                     throw new Error("Error fetching poll");
                 }
                 const whitelist = whitelistStrings.reduce((addresses, whitelistString) => {

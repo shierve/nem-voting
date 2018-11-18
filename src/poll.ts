@@ -126,7 +126,7 @@ class UnbroadcastedPoll extends Poll {
                 const splitAddresses: string[][] = [];
                 const addresses = this.data.whitelist!.map((a) => a.plain());
                 while (addresses.length > 0) {
-                    splitAddresses.push(addresses.splice(0, 23)); // 24 is the maximum amount of addresses that fit in a single transaction
+                    splitAddresses.push(addresses.splice(0, 23)); // 23 is the maximum amount of addresses that fit in a single transaction
                 }
                 const whitelistMessages = splitAddresses.map((partialWhitelist) => {
                     const whitelistMessage = "whitelist:" + JSON.stringify(partialWhitelist);
@@ -140,9 +140,6 @@ class UnbroadcastedPoll extends Poll {
                 doe: this.data.formData.doe,
                 address: pollAddress.plain(),
             };
-            // if (this.data.formData.type === PollConstants.WHITELIST_POLL) {
-            //     header.whitelist = this.data.whitelist!.map((a) => a.plain());
-            // }
             const headerMessage = "poll:" + JSON.stringify(header);
             let pollIndexAddress: Address;
             if (pollIndex) {
@@ -293,12 +290,32 @@ class BroadcastedPoll extends Poll {
     }
 
     /**
-     * Sets the end block when the poll ends
+     * Sets the block when the poll ends
      * @param block - The end block
      * @return void
      */
     public setEndBlock = (block: number): void => {
         this.endBlock = block;
+    }
+
+    /**
+     * Get the transactions needed to be broadcasted by the creator of the poll for extending the whitelist before the poll ending
+     * @param addresses - The additional addresses to be added
+     */
+    public extendWhitelist = (addresses: Address[]): TransferTransaction[] => {
+        if (this.data.formData.type !== PollConstants.WHITELIST_POLL) {
+            throw new Error("This poll is not a whitelist poll");
+        }
+        const splitAddresses: string[][] = [];
+        const plainAddresses = addresses.map((a) => a.plain());
+        while (plainAddresses.length > 0) {
+            splitAddresses.push(plainAddresses.splice(0, 23));
+        }
+        const whitelistMessages = splitAddresses.map((partialWhitelist) => {
+            const whitelistMessage = "whitelist:" + JSON.stringify(partialWhitelist);
+            return getMessageTransaction(whitelistMessage, this.address);
+        });
+        return whitelistMessages;
     }
 
     /**

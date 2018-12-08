@@ -185,11 +185,13 @@ const getWhitelistResultsPromise = async (poll: BroadcastedPoll): Promise<IResul
 
     const totalVotes = allAddresses.length;
     const optionResults = poll.data.options.map((option, i) => {
-        const percentage = (totalVotes === 0) ? (0) : (voteCountsWeighted[i] * 100 / unique(allAddresses).length);
+        // const percentage = (totalVotes === 0) ? (0) : (voteCountsWeighted[i] * 100 / unique(allAddresses).length);
+        const percentage = (totalVotes === 0) ? (0) : (voteCounts[i] * 100 / allAddresses.length);
         return {
             text: poll.data.options[i],
             votes: voteCounts[i],
-            weighted: voteCountsWeighted[i],
+            // weighted: voteCountsWeighted[i],
+            weighted: voteCounts[i],
             percentage: (percentage),
         };
     });

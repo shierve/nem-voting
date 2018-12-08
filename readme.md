@@ -84,8 +84,11 @@ const pollAddress = new Address("TCX6LT3Y43IQL3DKU6FAGDMWJFROQGFPWSJMUY7R");
 
 BroadcastedPoll.fromAddress(pollAddress)
     .map((poll) => {
-        console.log(poll);
+        return poll;
     })
+    .subscribe((data) => {
+        console.log(data);
+    });
 ```
 
 ### Getting the results for a broadcasted poll

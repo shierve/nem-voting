@@ -10,7 +10,9 @@
     "copyjson": "cp -r test/responses/ dist/test/responses/",
     "build": "rm -rf dist && tsc && npm run copyjson",
     "test": "npm run build && nyc mocha --ui bdd --recursive ./dist/test --timeout 10000",
-    "coverage": "nyc report --reporter=text-lcov --timeout 90000 | coveralls"
+    "coverage": "nyc report --reporter=text-lcov --timeout 90000 | coveralls",
+    "preversion": "npm run test",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "NEM",

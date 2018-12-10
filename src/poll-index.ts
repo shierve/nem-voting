@@ -10,6 +10,7 @@ interface IPollHeader {
     type: number;
     doe: number;
     address: Address;
+    creator: Address;
     whitelist?: Address[];
 }
 
@@ -65,7 +66,7 @@ class PollIndex {
             }).map((transactions) => {
                 const headers = transactions.map((transaction) => {
                     try {
-                        if (transaction.type !== TransactionTypes.TRANSFER) {
+                        if (transaction.type !== TransactionTypes.TRANSFER || !transaction.signer) {
                             return null;
                         }
                         const header = JSON.parse((transaction.message as PlainMessage).plain().replace("poll:", ""));
@@ -74,6 +75,7 @@ class PollIndex {
                             type: header.type,
                             doe: header.doe,
                             address: new Address(header.address),
+                            creator: transaction.signer.address,
                             whitelist: header.whitelist,
                         } as IPollHeader;
                     } catch (err) {

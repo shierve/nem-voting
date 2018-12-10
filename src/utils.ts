@@ -113,6 +113,9 @@ const getFirstMessageWithString =
 const getFirstSender = (receiver: Address): Observable<Address | null> => {
     return getTransactionsWithString("", receiver)
         .map((transactions) => {
+            transactions = transactions.sort((a, b) => {
+                return a.getTransactionInfo().height - b.getTransactionInfo().height;
+            });
             if (!transactions || transactions.length === 0 || !transactions[0].signer) {
                 return null;
             } else {

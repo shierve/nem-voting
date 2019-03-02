@@ -105,7 +105,7 @@ const getFirstMessageWithString =
             if (transactions.length === 0) {
                 return null;
             }
-            return (transactions[0].message as PlainMessage).plain();
+            return (transactions[transactions.length - 1].message as PlainMessage).plain();
         });
 };
 

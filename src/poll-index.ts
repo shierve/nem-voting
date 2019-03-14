@@ -36,7 +36,7 @@ class PollIndex {
      */
     public headers: IPollHeader[];
 
-    private lastId?: number;
+    public lastId?: number;
 
     /**
      * @internal

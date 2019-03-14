@@ -1,6 +1,6 @@
-import { Address, TransactionTypes, PlainMessage, Account, TransferTransaction } from "nem-library";
+import { Address, TransactionTypes, PlainMessage, Account, TransferTransaction, Pageable, Transaction } from "nem-library";
 import { Observable } from "rxjs";
-import { getFirstMessageWithString, getTransactionsWithString, generateRandomAddress, getMessageTransaction } from "./utils";
+import { getFirstMessageWithString, getTransactionsWithString, generateRandomAddress, getMessageTransaction, getTransactionPageable, getPageOfTransactionsWithString } from "./utils";
 
 /**
  * Represents the info from a poll header sent to an index
@@ -35,14 +35,17 @@ class PollIndex {
      */
     public headers: IPollHeader[];
 
+    private lastId?: number;
+
     /**
      * @internal
      */
-    constructor(address: Address, isPrivate: boolean, headers: IPollHeader[], creator?: Address) {
+    constructor(address: Address, isPrivate: boolean, headers: IPollHeader[], creator?: Address, lastId?: number) {
         this.address = address;
         this.isPrivate = isPrivate;
         this.headers = headers;
         this.creator = creator;
+        this.lastId = lastId;
     }
 
     /**
@@ -55,15 +58,23 @@ class PollIndex {
             isPrivate: boolean;
             creator?: string;
         };
+        let index;
         return getFirstMessageWithString("pollIndex:", address)
             .switchMap((indexMessage) => {
-                indexObject = JSON.parse(indexMessage!.replace("pollIndex:", "")).private;
-                if (indexObject.isPrivate) {
-                    return getTransactionsWithString("poll:", address, new Address(indexObject.creator!));
-                } else {
-                    return getTransactionsWithString("poll:", address);
-                }
-            }).map((transactions) => {
+                indexObject = JSON.parse(indexMessage!.replace("pollIndex:", ""));
+                index = (indexObject.isPrivate) ?
+                    new PollIndex(address, indexObject.isPrivate, [], new Address(indexObject.creator!)) :
+                    new PollIndex(address, indexObject.isPrivate, []);
+                return index.fetchNextPage();
+            }).map((_) => {
+                return index;
+            });
+    }
+
+    public fetchNextPage = (): Observable<IPollHeader[]> => {
+        return getPageOfTransactionsWithString(this.address, 100, "poll:", this.lastId, this.creator)
+            .map((transactions) => {
+                this.lastId = transactions[transactions.length - 1].getTransactionInfo().id;
                 const headers = transactions.map((transaction) => {
                     try {
                         if (transaction.type !== TransactionTypes.TRANSFER || !transaction.signer) {
@@ -82,11 +93,8 @@ class PollIndex {
                         return null;
                     }
                 }).filter((h) => h !== null).map((h) => h!);
-                if (indexObject.isPrivate) {
-                    return new PollIndex(address, indexObject.isPrivate, headers, new Address(indexObject.creator!));
-                } else {
-                    return new PollIndex(address, indexObject.isPrivate, headers);
-                }
+                this.headers = this.headers.concat(headers);
+                return headers;
             });
     }
 
@@ -98,7 +106,7 @@ class PollIndex {
      */
     public static create = (isPrivate: boolean, creatorAddress?: Address): {address: Address, transaction: TransferTransaction} => {
         const address = generateRandomAddress();
-        const ownMessage = "createdPollIndex:" + address.plain();
+        // const ownMessage = "createdPollIndex:" + address.plain();
         const obj: {[key: string]: any} = {
             private: isPrivate,
         };

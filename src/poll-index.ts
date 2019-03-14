@@ -1,6 +1,7 @@
 import { Address, TransactionTypes, PlainMessage, Account, TransferTransaction, Pageable, Transaction } from "nem-library";
 import { Observable } from "rxjs";
 import { getFirstMessageWithString, getTransactionsWithString, generateRandomAddress, getMessageTransaction, getTransactionPageable, getPageOfTransactionsWithString } from "./utils";
+import { PollConstants } from "./constants";
 
 /**
  * Represents the info from a poll header sent to an index
@@ -59,7 +60,13 @@ class PollIndex {
             creator?: string;
         };
         let index;
-        return getFirstMessageWithString("pollIndex:", address)
+        let indexMessageObservable;
+        if (address.plain() === new Address(PollConstants.MAINNET_POLL_INDEX).plain() || address.plain() === new Address(PollConstants.TESTNET_POLL_INDEX).plain()) {
+            indexMessageObservable = Observable.fromPromise(Promise.resolve("pollIndex:{\"isPrivate\":false}"));
+        } else {
+            indexMessageObservable = getFirstMessageWithString("pollIndex:", address);
+        }
+        return indexMessageObservable
             .switchMap((indexMessage) => {
                 indexObject = JSON.parse(indexMessage!.replace("pollIndex:", ""));
                 index = (indexObject.isPrivate) ?

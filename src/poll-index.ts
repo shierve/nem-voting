@@ -54,7 +54,7 @@ class PollIndex {
      * @param address - the index account address
      * @return Observable<PollIndex>
      */
-    public static fromAddress = (address: Address): Observable<PollIndex> => {
+    public static fromAddress = (address: Address, lastId?: number): Observable<PollIndex> => {
         let indexObject: {
             isPrivate: boolean;
             creator?: string;
@@ -70,8 +70,8 @@ class PollIndex {
             .switchMap((indexMessage) => {
                 indexObject = JSON.parse(indexMessage!.replace("pollIndex:", ""));
                 index = (indexObject.isPrivate) ?
-                    new PollIndex(address, indexObject.isPrivate, [], new Address(indexObject.creator!)) :
-                    new PollIndex(address, indexObject.isPrivate, []);
+                    new PollIndex(address, indexObject.isPrivate, [], new Address(indexObject.creator!), lastId) :
+                    new PollIndex(address, indexObject.isPrivate, [], undefined, lastId);
                 return index.fetchNextPage();
             }).map((_) => {
                 return index;

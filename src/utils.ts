@@ -59,6 +59,39 @@ const getAllTransactions = (receiver: Address): Observable<Transaction[]> => {
         }, []);
 };
 
+const getAllOutgoingTransactions = (sender: Address): Observable<Transaction[]> => {
+    initializeHttp();
+    const pageable = accountHttp.outgoingTransactionsPaginated(sender, {pageSize: 100});
+    return pageable
+        .map((allTransactions) => {
+            pageable.nextPage();
+            return allTransactions.filter((t) => (t.type === TransactionTypes.MULTISIG || t.type === TransactionTypes.TRANSFER));
+        }).reduce((acc, page) => {
+            return acc.concat(page);
+        }, []);
+};
+
+const getOutgoingTransactionsWithString =
+(queryString: string, sender: Address, position: number = 0): Observable<TransferTransaction[]> => {
+    initializeHttp();
+    return getAllOutgoingTransactions(sender)
+        .map((allTransactions) => {
+            // We only want transfer and multisig transactions, and we are only interested in
+            // the inner transaction for multisig transactions
+            const transactions: TransferTransaction[] = allTransactions
+                .map((transaction) => {
+                    if (transaction.type === TransactionTypes.MULTISIG) {
+                        transaction = (transaction as MultisigTransaction).otherTransaction;
+                    }
+                    return (transaction as TransferTransaction);
+                });
+            // Then we get the messages, we only want the plain messages, not encrypted
+            return transactions
+                .filter((t) => t.message.isPlain())
+                .filter((t) => (t.message as PlainMessage).plain().includes(queryString, position));
+        });
+};
+
 const getPageOfTransactions = (address: Address, pageSize: number, lastId?: number): Observable<Transaction[]> => {
     initializeHttp();
     return accountHttp.incomingTransactions(address, {
@@ -140,32 +173,6 @@ const getTransactionsWithString =
                 .filter((t) => (t.message as PlainMessage).plain().includes(queryString, position));
         });
 };
-
-// const getTransactionsWithStringPage =
-// (queryString: string, receiver: Address, sender?: Address, position: number = 0): Observable<TransferTransaction[]> => {
-//     initializeHttp();
-//     return getPageOfTransactions(receiver, 100)
-//         .map((allTransactions) => {
-//             // We only want transfer and multisig transactions, and we are only interested in
-//             // the inner transaction for multisig transactions
-//             let transactions: TransferTransaction[] = allTransactions
-//                 .filter((t) => (t.type === TransactionTypes.MULTISIG || t.type === TransactionTypes.TRANSFER))
-//                 .map((transaction) => {
-//                     if (transaction.type === TransactionTypes.MULTISIG) {
-//                         transaction = (transaction as MultisigTransaction).otherTransaction;
-//                     }
-//                     return (transaction as TransferTransaction);
-//                 });
-//             // filter by sender
-//             if (sender !== undefined) {
-//                 transactions = transactions.filter((t) => (t.signer !== undefined && t.signer.address.plain() === sender.plain()));
-//             }
-//             // Then we get the messages, we only want the plain messages, not encrypted
-//             return transactions
-//                 .filter((t) => t.message.isPlain())
-//                 .filter((t) => (t.message as PlainMessage).plain().includes(queryString, position));
-//         });
-// };
 
 const getFirstMessageWithString =
 (queryString: string, receiver: Address, sender?: Address, position: number = 0): Observable<string | null> => {
@@ -376,5 +383,5 @@ export {
     getImportances, getHeightByTimestamp, findTransaction, getHeightByTimestampPromise, getFirstMessageWithString,
     getTransactionsWithString, getAllTransactions, getTransferTransaction, getMessageTransaction, getMultisigMessage,
     generatePollAddress, deriveOptionAddress, generateRandomAddress, getAllMessagesWithString, getFirstSender,
-    generateRandomPubKey, getTransactionPageable, getPageOfTransactionsWithString,
+    generateRandomPubKey, getTransactionPageable, getPageOfTransactionsWithString, getOutgoingTransactionsWithString,
 };

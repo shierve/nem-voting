@@ -81,6 +81,9 @@ class PollIndex {
     public fetchNextPage = (): Observable<IPollHeader[]> => {
         return getPageOfTransactionsWithString(this.address, 100, "poll:", this.lastId, this.creator)
             .map((transactions) => {
+                if (transactions.length === 0) {
+                    return [];
+                }
                 this.lastId = transactions[transactions.length - 1].getTransactionInfo().id;
                 const headers = transactions.map((transaction) => {
                     try {

@@ -3,7 +3,7 @@ import nock = require("nock");
 import { Poll, BroadcastedPoll, IFormData } from "../src/poll";
 import { NetworkTypes, NEMLibrary, Address, Account, TransactionTypes, PublicAccount, ServerConfig, TransactionHttp } from "nem-library";
 import { PollConstants } from "../src/constants";
-import { deriveOptionAddress } from "../src/utils";
+import { deriveOptionAddress, testNodeAddress } from "../src/utils";
 
 describe("Voting", () => {
   let address: Address;
@@ -11,7 +11,7 @@ describe("Voting", () => {
   let yesAddress: Address;
   let noAddress: Address;
   const nodes: ServerConfig[] = [
-    {protocol: "http", domain: "104.128.226.60", port: 7890},
+    {protocol: "http", domain: testNodeAddress, port: 7890},
   ];
 
   beforeEach(() => {
@@ -44,7 +44,7 @@ describe("Voting", () => {
   });
 
   it("should correctly broadcast a vote", (done) => {
-    const nk = nock("http://104.128.226.60:7890")
+    const nk = nock("http://" + testNodeAddress + ":7890")
     .post("/transaction/announce", (body) => {
         expect(body).to.have.property("data");
         expect(body).to.have.property("signature");
@@ -67,7 +67,7 @@ describe("Voting", () => {
   });
 
   it("should get all the votes from an address to a poll", (done) => {
-    nock("http://104.128.226.60:7890")
+    nock("http://" + testNodeAddress + ":7890")
       .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
       .once()
       .replyWithFile(200, __dirname + "/responses/transactions_1.json")
@@ -89,7 +89,7 @@ describe("Voting", () => {
   });
 
   it("should be able to broadcast a multisig vote", (done) => {
-    const nk = nock("http://104.128.226.60:7890")
+    const nk = nock("http://" + testNodeAddress + ":7890")
     .post("/transaction/announce", (body) => {
         expect(body).to.have.property("data");
         expect(body).to.have.property("signature");

@@ -3,7 +3,7 @@ import nock = require("nock");
 import { Poll, BroadcastedPoll, IFormData } from "../src/poll";
 import { NetworkTypes, NEMLibrary, Address } from "nem-library";
 import { PollConstants } from "../src/constants";
-import { deriveOptionAddress } from "../src/utils";
+import { deriveOptionAddress, testNodeAddress } from "../src/utils";
 
 describe("Vote Counting", () => {
   let address: Address;
@@ -47,7 +47,7 @@ describe("Vote Counting", () => {
   });
 
   it("should count votes correctly on POI polls", (done) => {
-    nock("http://104.128.226.60:7890")
+    nock("http://" + testNodeAddress + ":7890")
       .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
       .once()
       .replyWithFile(200, __dirname + "/responses/transactions_1.json")
@@ -83,7 +83,7 @@ describe("Vote Counting", () => {
   });
 
   it("should count votes correctly on whitelist polls", (done) => {
-    nock("http://104.128.226.60:7890")
+    nock("http://" + testNodeAddress + ":7890")
       .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
       .once()
       .replyWithFile(200, __dirname + "/responses/transactions_1.json")
@@ -119,7 +119,7 @@ describe("Vote Counting", () => {
   });
 
   it("should generate a csv string successfully", async () => {
-    nock("http://104.128.226.60:7890")
+    nock("http://" + testNodeAddress + ":7890")
       .get("/account/transfers/incoming?address=" + yesAddress.plain() + "&pageSize=100")
       .once()
       .replyWithFile(200, __dirname + "/responses/transactions_1.json")

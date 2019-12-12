@@ -12,16 +12,19 @@ let chainHttp: ChainHttp;
 let blockHttp: BlockHttp;
 let transactionHttp: TransactionHttp;
 
+const testNodeAddress = "hugetestalice.nem.ninja";
+const mainNodeAddress = "hugealice.nem.ninja";
+
 const initializeHttp = () => {
     let nodes: ServerConfig[] = [];
 
     if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
         nodes = [
-            {protocol: "http", domain: "hugetestalice.nem.ninja", port: 7890},
+            {protocol: "http", domain: testNodeAddress, port: 7890},
         ];
     } else if (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) {
         nodes = [
-            {protocol: "http", domain: "hugealice.nem.ninja", port: 7890},
+            {protocol: "http", domain: mainNodeAddress, port: 7890},
         ];
     } else {
         throw new Error("Not bootstrapped");
@@ -389,4 +392,5 @@ export {
     getTransactionsWithString, getAllTransactions, getTransferTransaction, getMessageTransaction, getMultisigMessage,
     generatePollAddress, deriveOptionAddress, generateRandomAddress, getAllMessagesWithString, getFirstSender,
     generateRandomPubKey, getTransactionPageable, getPageOfTransactionsWithString, getOutgoingTransactionsWithString,
+    testNodeAddress, mainNodeAddress,
 };

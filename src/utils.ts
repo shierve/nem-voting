@@ -33,7 +33,7 @@ const initializeHttp = () => {
     accountHttp = new AccountHttp(nodes);
     if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
         (accountHttp as any).historicalNodes = [
-            {protocol: "http", domain: "95.216.73.245", port: 7890},
+            {protocol: "http", domain: testNodeAddress, port: 7890},
         ];
     }
     chainHttp = new ChainHttp(nodes);

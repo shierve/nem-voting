@@ -36,6 +36,11 @@ const initializeHttp = () => {
             {protocol: "http", domain: testNodeAddress, port: 7890},
         ];
     }
+    if (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) {
+        (accountHttp as any).historicalNodes = [
+            {protocol: "http", domain: mainNodeAddress, port: 7890},
+        ];
+    }
     chainHttp = new ChainHttp(nodes);
     blockHttp = new BlockHttp(nodes);
     transactionHttp = new TransactionHttp(nodes);

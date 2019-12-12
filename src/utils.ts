@@ -17,11 +17,11 @@ const initializeHttp = () => {
 
     if (NEMLibrary.getNetworkType() === NetworkTypes.TEST_NET) {
         nodes = [
-            {protocol: "http", domain: "104.128.226.60", port: 7890},
+            {protocol: "http", domain: "hugetestalice.nem.ninja", port: 7890},
         ];
     } else if (NEMLibrary.getNetworkType() === NetworkTypes.MAIN_NET) {
         nodes = [
-            {protocol: "http", domain: "88.99.192.82", port: 7890},
+            {protocol: "http", domain: "hugealice.nem.ninja", port: 7890},
         ];
     } else {
         throw new Error("Not bootstrapped");
